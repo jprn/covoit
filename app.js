@@ -107,6 +107,21 @@ const Store = {
     this.save(); return m;
   },
   myNotifications(){ const me=this.currentUser(); if(!me) return []; return this.data.notifications.filter(n=>n.user_id===me.id).sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)); },
+  ensureGuest(){
+    // If a session exists, return it
+    const u = this.currentUser();
+    if (u) return { token: this.data.currentToken, user: u };
+    // find or create a local guest user
+    let guest = this.data.users.find(x=>x.email==='guest@local');
+    if (!guest) {
+      guest = { id: this.data.nextIds.user++, email:'guest@local', first_name:'Invité', last_name:'', phone:'', city:'' };
+      this.data.users.push(guest);
+    }
+    const token = Math.random().toString(36).slice(2)+Date.now();
+    this.data.sessions.push({ token, user_id: guest.id, created_at: new Date().toISOString()});
+    this.data.currentToken = token; this.save();
+    return { token, user: guest };
+  }
 };
 Store.load();
 
@@ -122,7 +137,14 @@ function hdist(a, b) {
   return 2*R*Math.asin(Math.sqrt(x));
 }
 function el(html){ const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
-function ensureAuth() { if (!state.session) { location.hash = "#/auth"; throw new Error("auth"); } }
+function ensureAuth() {
+  if (!state.session) {
+    const res = Store.ensureGuest();
+    state.session = { token: res.token, user: res.user };
+    state.me = res.user;
+    localStorage.setItem('sr_session', JSON.stringify(state.session));
+  }
+}
 
 // Layout mounting
 function mountLayout() {
@@ -239,6 +261,12 @@ const pages = {
     const url = new URL(location.href); const q = Object.fromEntries(url.searchParams.entries());
     if (q.event_id) selEvent.value = q.event_id;
 
+    // Prefill contact fields
+    if (form.last_name) form.last_name.value = state.me?.last_name||'';
+    if (form.first_name) form.first_name.value = state.me?.first_name||'';
+    if (form.email) form.email.value = state.me?.email||'';
+    if (form.phone) form.phone.value = state.me?.phone||'';
+
     $('#btn-geoloc', frag).addEventListener('click', ()=>{
       if (!navigator.geolocation) return alert('Géolocalisation non supportée');
       navigator.geolocation.getCurrentPosition((pos)=>{
@@ -249,6 +277,14 @@ const pages = {
     form.addEventListener('submit', async (e)=>{
       e.preventDefault(); errBox.textContent = '';
       const fd = new FormData(form); const p = Object.fromEntries(fd.entries());
+      // update profile with provided contact info
+      Store.updateProfile({
+        first_name: p.first_name || state.me?.first_name || '',
+        last_name: p.last_name || state.me?.last_name || '',
+        email: p.email || state.me?.email || '',
+        phone: p.phone || state.me?.phone || ''
+      });
+      state.me = Store.currentUser();
       const payload = {
         event_id: p.event_id,
         ride_type: p.ride_type,
@@ -420,6 +456,12 @@ async function initAuth(){
   const raw = localStorage.getItem('sr_session');
   if (raw) {
     try { state.session = JSON.parse(raw); state.me = state.session.user; } catch {}
+  }
+  if (!state.session) {
+    const res = Store.ensureGuest();
+    state.session = { token: res.token, user: res.user };
+    state.me = res.user;
+    localStorage.setItem('sr_session', JSON.stringify(state.session));
   }
 }
 

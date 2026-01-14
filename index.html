@@ -140,6 +140,13 @@
           <label><input type="checkbox" name="smoking" /> Fumeur</label>
           <label><input type="checkbox" name="pets" /> Animaux OK</label>
         </fieldset>
+        <fieldset>
+          <legend>Vos coordonnées</legend>
+          <label>Nom<input type="text" name="last_name" required placeholder="Votre nom" /></label>
+          <label>Prénom<input type="text" name="first_name" required placeholder="Votre prénom" /></label>
+          <label>Email<input type="email" name="email" required placeholder="vous@email.com" /></label>
+          <label>Téléphone<input type="tel" name="phone" required placeholder="+33..." /></label>
+        </fieldset>
         <button class="btn primary" type="submit">Publier</button>
       </form>
       <div id="ride-error" class="error"></div>
