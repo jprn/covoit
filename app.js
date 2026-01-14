@@ -400,13 +400,12 @@ const routes = {
 async function router(){
   mountLayout();
   const hash = location.hash || "#/";
-  const [base, ...params] = hash.split('/').reduce((acc,part)=>{
-    if (part.startsWith('#')) acc.push(part+''); else acc.push(part);
-    return acc;
-  }, []).slice(0,3); // keep short
-  const key = params.length? `${base}` : hash;
-  const handler = routes[base] || routes[key] || pages.home;
-  const page = await handler(params.slice(1));
+  // Expected formats: #/ , #/events , #/event/1 , #/ride/5 , etc.
+  const parts = hash.split('/');
+  const base = parts.slice(0,2).join('/'); // e.g. '#/event'
+  const params = parts.slice(2);          // e.g. ['1']
+  const handler = routes[base] || pages.home;
+  const page = await handler(params);
   $("#page").innerHTML = "";
   $("#page").appendChild(page);
   // set active tab
