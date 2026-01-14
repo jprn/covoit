@@ -1,5 +1,5 @@
 // SportRide SPA
-// Routing simple (hash) + REST API PHP/MySQL (Hostinger)
+// 100% local (no backend): state persisted in localStorage
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -18,16 +18,97 @@ const state = {
   events: [],
 };
 
-// REST client
-const API_BASE = "/api";
-async function api(path, { method = 'GET', body, auth = true } = {}){
-  const headers = { 'Content-Type': 'application/json' };
-  if (auth && state.session?.token) headers['Authorization'] = `Bearer ${state.session.token}`;
-  const res = await fetch(`${API_BASE}${path}`, { method, headers, body: body? JSON.stringify(body): undefined });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-  return data;
-}
+// Local store
+const LS_KEY = 'sportride_store_v1';
+const Store = {
+  data: null,
+  load(){
+    try { this.data = JSON.parse(localStorage.getItem(LS_KEY)) || null; } catch { this.data=null; }
+    if (!this.data) this.seed();
+  },
+  save(){ localStorage.setItem(LS_KEY, JSON.stringify(this.data)); },
+  seed(){
+    const now = new Date();
+    const day = 24*3600*1000;
+    this.data = {
+      users: [
+        { id:1, email:'alice@example.com', first_name:'Alice', last_name:'Martin', phone:'+33600000001', city:'Lyon' },
+        { id:2, email:'bruno@example.com', first_name:'Bruno', last_name:'Lefevre', phone:'+33600000002', city:'Grenoble' },
+        { id:3, email:'camille@example.com', first_name:'Camille', last_name:'Durand', phone:'+33600000003', city:'Annecy' },
+        { id:4, email:'david@example.com', first_name:'David', last_name:'Lopez', phone:'+33600000004', city:'Chambéry' },
+        { id:5, email:'emma@example.com', first_name:'Emma', last_name:'Petit', phone:'+33600000005', city:'Lyon' },
+        { id:6, email:'fanny@example.com', first_name:'Fanny', last_name:'Morel', phone:'+33600000006', city:'Valence' },
+        { id:7, email:'gabriel@example.com', first_name:'Gabriel', last_name:'Garcia', phone:'+33600000007', city:'Clermont-Ferrand' },
+        { id:8, email:'hugo@example.com', first_name:'Hugo', last_name:'Rossi', phone:'+33600000008', city:'Saint-Étienne' },
+      ],
+      sessions: [],
+      currentToken: null,
+      events: [
+        { id:1, name:'Trail des Cimes', sport:'trail', date:new Date(now.getTime()+20*day).toISOString(), city:'Annecy', location:"Lac d'Annecy", dest_lat:45.8992, dest_lng:6.1296 },
+        { id:2, name:'Triathlon du Lac', sport:'triathlon', date:new Date(now.getTime()+35*day).toISOString(), city:'Aix-les-Bains', location:'Esplanade du lac', dest_lat:45.6896, dest_lng:5.9087 },
+      ],
+      rides: [
+        { id:1, user_id:1, event_id:1, ride_type:'go', depart_at:new Date(now.getTime()+10*day+ (7*60+30)*60000).toISOString(), origin_text:'Lyon Part-Dieu', origin_lat:45.76, origin_lng:4.861, seats_total:4, max_detour_km:10, price_suggested:10, note:'Je passe par Bourgoin', rules:{music:true,luggage:true}, status:'active', created_at:new Date().toISOString() },
+        { id:2, user_id:2, event_id:1, ride_type:'return', depart_at:new Date(now.getTime()+10*day+ (17*60)*60000).toISOString(), origin_text:'Annecy centre', origin_lat:45.9, origin_lng:6.1167, seats_total:3, max_detour_km:5, price_suggested:0, note:'Retour après la course', rules:{pets:false}, status:'active', created_at:new Date().toISOString() },
+        { id:3, user_id:3, event_id:1, ride_type:'go', depart_at:new Date(now.getTime()+10*day+ (6*60+45)*60000).toISOString(), origin_text:'Chambéry Gare', origin_lat:45.57, origin_lng:5.92, seats_total:3, max_detour_km:15, price_suggested:5, note:null, rules:{smoking:false}, status:'active', created_at:new Date().toISOString() },
+        { id:4, user_id:4, event_id:2, ride_type:'go', depart_at:new Date(now.getTime()+25*day+ (8*60)*60000).toISOString(), origin_text:'Grenoble Victor Hugo', origin_lat:45.186, origin_lng:5.7266, seats_total:4, max_detour_km:20, price_suggested:8, note:"Départ à l'heure", rules:{music:true}, status:'active', created_at:new Date().toISOString() },
+        { id:5, user_id:5, event_id:2, ride_type:'return', depart_at:new Date(now.getTime()+25*day+ (18*60)*60000).toISOString(), origin_text:'Aix-les-Bains', origin_lat:45.69, origin_lng:5.91, seats_total:2, max_detour_km:10, price_suggested:0, note:null, rules:{luggage:true}, status:'active', created_at:new Date().toISOString() },
+      ],
+      bookings: [],
+      messages: [],
+      notifications: [],
+      nextIds: { user:9, ride:6, booking:1, message:1, notif:1 }
+    };
+    this.save();
+  },
+  userByEmail(email){ return this.data.users.find(u=>u.email.toLowerCase()===email.toLowerCase()); },
+  currentUser(){ const t=this.data.currentToken; if (!t) return null; const s=this.data.sessions.find(s=>s.token===t); if(!s) return null; return this.data.users.find(u=>u.id===s.user_id)||null; },
+  signIn(email, password){ // password ignored in MVP seed
+    const u = this.userByEmail(email);
+    if (!u) return null;
+    const token = Math.random().toString(36).slice(2)+Date.now();
+    this.data.sessions.push({ token, user_id: u.id, created_at: new Date().toISOString()});
+    this.data.currentToken = token; this.save(); return { token, user: u };
+  },
+  updateProfile(patch){ const me = this.currentUser(); if (!me) return null; Object.assign(me, patch); this.save(); return me; },
+  listEvents(){ return [...this.data.events].sort((a,b)=>new Date(a.date)-new Date(b.date)); },
+  listRides({event_id}={}){
+    let rr = this.data.rides.filter(r=> new Date(r.depart_at) >= new Date());
+    if (event_id) rr = rr.filter(r=>String(r.event_id)===String(event_id));
+    return rr.sort((a,b)=> new Date(a.depart_at)-new Date(b.depart_at)).map(r=>this.enrichRide(r));
+  },
+  getRide(id){ const r=this.data.rides.find(x=>x.id==id); return r? this.enrichRide(r): null; },
+  enrichRide(r){
+    const e = this.data.events.find(ev=>ev.id===r.event_id);
+    const driver = this.data.users.find(u=>u.id===r.user_id);
+    const seats_booked = this.data.bookings.filter(b=>b.ride_id===r.id && (b.status==='pending'||b.status==='accepted')).reduce((s,b)=>s+b.seats,0);
+    return { ...r, event_name: e?.name, event_city: e?.city, driver_name: `${driver?.first_name||''} ${driver?.last_name||''}`.trim(), seats_booked };
+  },
+  createRide(payload){ const me=this.currentUser(); if(!me) throw new Error('auth'); const id=this.data.nextIds.ride++; const r={ id, user_id: me.id, status:'active', created_at:new Date().toISOString(), ...payload }; this.data.rides.push(r); this.save(); return this.enrichRide(r); },
+  createBooking({ride_id, seats, message}){
+    const me=this.currentUser(); if(!me) throw new Error('auth');
+    const exists = this.data.bookings.find(b=>b.ride_id==ride_id && b.passenger_id==me.id && b.status!=='cancelled');
+    if (exists) throw new Error('Vous avez déjà une réservation pour ce trajet');
+    const id=this.data.nextIds.booking++; const b={ id, ride_id, passenger_id: me.id, seats, message, status:'pending', created_at:new Date().toISOString() };
+    this.data.bookings.push(b);
+    const ride = this.data.rides.find(r=>r.id==ride_id);
+    if (ride && ride.user_id !== me.id) {
+      this.data.notifications.push({ id:this.data.nextIds.notif++, user_id: ride.user_id, title:'Nouvelle demande', body:'Un passager souhaite rejoindre votre trajet', created_at:new Date().toISOString(), read:0 });
+    }
+    this.save(); return b;
+  },
+  listMessages(booking_id){ return this.data.messages.filter(m=>m.booking_id==booking_id).sort((a,b)=> new Date(a.created_at)-new Date(b.created_at)); },
+  sendMessage({booking_id, text}){
+    const me=this.currentUser(); if(!me) throw new Error('auth');
+    const id=this.data.nextIds.message++; const m={ id, booking_id, sender_id: me.id, text, created_at:new Date().toISOString()}; this.data.messages.push(m);
+    // notify other
+    const bk = this.data.bookings.find(b=>b.id==booking_id);
+    if (bk){ const ride=this.data.rides.find(r=>r.id==bk.ride_id); const other = (bk.passenger_id===me.id)? ride?.user_id : bk.passenger_id; if (other) this.data.notifications.push({ id:this.data.nextIds.notif++, user_id:other, title:'Nouveau message', body: text.slice(0,120), created_at:new Date().toISOString(), read:0 }); }
+    this.save(); return m;
+  },
+  myNotifications(){ const me=this.currentUser(); if(!me) return []; return this.data.notifications.filter(n=>n.user_id===me.id).sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)); },
+};
+Store.load();
 
 // Helpers
 function fmtDate(dt) { return new Date(dt).toLocaleString(); }
@@ -65,9 +146,7 @@ const pages = {
     const list = $("#event-list", frag);
     const empty = $("#event-empty", frag);
     const input = $("#event-q", frag);
-
-    const data = await api('/events.php');
-    state.events = data.events || [];
+    state.events = Store.listEvents();
 
     function render(q=""){
       list.innerHTML = "";
@@ -90,7 +169,7 @@ const pages = {
     const id = params[0];
     const frag = $("#tpl-event").content.cloneNode(true);
     const header = $("#event-header", frag);
-    const ev = (await api(`/events.php?id=${id}`)).event;
+    const ev = Store.data.events.find(e=>String(e.id)===String(id));
     if (!ev) { header.innerHTML = '<div class="card">Évènement introuvable</div>'; return frag; }
     header.innerHTML = `<h2>${ev.name}</h2><div>${ev.city} • ${new Date(ev.date).toLocaleDateString()}</div>`;
 
@@ -101,7 +180,7 @@ const pages = {
 
     // rides list
     const list = $("#ride-list", frag); const empty = $("#ride-empty", frag);
-    const rides = (await api(`/rides.php?event_id=${id}`)).rides;
+    const rides = Store.listRides({event_id:id});
     function render(r=rides){
       list.innerHTML = '';
       empty.classList.toggle('hidden', (r||[]).length>0);
@@ -118,10 +197,11 @@ const pages = {
       e.preventDefault(); error.textContent = '';
       const fd = new FormData(form); const email=fd.get('email'); const password=fd.get('password');
       try{
-        const data = await api('/auth.php', { method: 'POST', body: { action: 'login', email, password }, auth: false });
-        state.session = { token: data.token, user: data.user };
+        const res = Store.signIn(email, password);
+        if (!res) throw new Error('Identifiants invalides');
+        state.session = { token: res.token, user: res.user };
         localStorage.setItem('sr_session', JSON.stringify(state.session));
-        state.me = data.user; location.hash = '#/profile';
+        state.me = res.user; location.hash = '#/profile';
       }catch(ex){ error.textContent = ex.message; }
     });
     return frag;
@@ -140,8 +220,8 @@ const pages = {
     form.addEventListener('submit', async (e)=>{
       e.preventDefault();
       const fd = new FormData(form); const payload = Object.fromEntries(fd.entries());
-      const data = await api('/auth.php', { method:'POST', body:{ action:'update_profile', profile: payload }});
-      state.me = data.user; alert('Profil mis à jour');
+      const u = Store.updateProfile(payload);
+      state.me = u; alert('Profil mis à jour');
     });
     btnLogout.addEventListener('click', async ()=>{ localStorage.removeItem('sr_session'); state.session=null; state.me=null; location.hash = '#/auth'; });
     return frag;
@@ -152,7 +232,7 @@ const pages = {
     const form = $("#ride-form", frag);
     const errBox = $("#ride-error", frag);
     const selEvent = $("#ride-event", frag);
-    const events = (await api('/events.php')).events;
+    const events = Store.listEvents();
     (events||[]).forEach(e => selEvent.appendChild(el(`<option value="${e.id}">${e.name} – ${e.city}</option>`)));
 
     // preselect from query
@@ -183,7 +263,7 @@ const pages = {
         },
       };
       try{
-        await api('/rides.php', { method:'POST', body: payload });
+        Store.createRide(payload);
         alert('Trajet publié'); location.hash = `#/event/${p.event_id}`;
       }catch(ex){ errBox.textContent = ex.message; }
     });
@@ -194,8 +274,7 @@ const pages = {
     const list = $("#rides-list", frag); const empty = $("#rides-empty", frag);
     const url = new URL(location.href); const q = Object.fromEntries(url.searchParams.entries());
     const filterType = $("#filter-type", frag); const sortSel = $("#filter-sort", frag);
-
-    const rides = (await api('/rides.php')).rides;
+    const rides = Store.listRides();
 
     function applyFilters() {
       let r = [...(rides||[])];
@@ -236,7 +315,7 @@ const pages = {
     const box = $("#ride-details", frag);
     const form = $("#book-form", frag);
     const err = $("#book-error", frag);
-    const ride = (await api(`/ride.php?id=${id}`)).ride;
+    const ride = Store.getRide(id);
     if (!ride) { box.innerHTML = 'Trajet introuvable'; return frag; }
     box.innerHTML = rideDetailsHTML(ride);
 
@@ -244,7 +323,7 @@ const pages = {
       e.preventDefault(); ensureAuth(); err.textContent='';
       const fd = new FormData(form); const count = Number(fd.get('count')||1); const message = fd.get('message')||'';
       try{
-        await api('/bookings.php', { method:'POST', body:{ ride_id: ride.id, seats: count, message }});
+        Store.createBooking({ ride_id: ride.id, seats: count, message });
         alert('Demande envoyée'); location.hash = '#/notifications';
       }catch(ex){ err.textContent = ex.message; }
     });
@@ -258,7 +337,7 @@ const pages = {
     const form = $("#chat-form", frag);
 
     async function load(){
-      const msgs = (await api(`/messages.php?booking_id=${resId}`)).messages;
+      const msgs = Store.listMessages(resId);
       thread.innerHTML = '';
       (msgs||[]).forEach(m => {
         const mine = m.sender_id === state.me.id;
@@ -267,7 +346,7 @@ const pages = {
     }
     form.addEventListener('submit', async (e)=>{
       e.preventDefault(); const text = new FormData(form).get('text'); if (!text) return;
-      await api('/messages.php', { method:'POST', body:{ booking_id: resId, text }});
+      Store.sendMessage({ booking_id: Number(resId), text });
       form.reset(); await load();
     });
     await load();
@@ -277,7 +356,7 @@ const pages = {
     ensureAuth();
     const frag = $("#tpl-notifications").content.cloneNode(true);
     const list = $("#notif-list", frag); const empty=$("#notif-empty", frag);
-    const data = (await api('/notifications.php')).notifications;
+    const data = Store.myNotifications();
     list.innerHTML = '';
     empty.classList.toggle('hidden', (data||[]).length>0);
     (data||[]).forEach(n => list.appendChild(el(`<li class="card">${n.title}<div class="muted">${fmtDate(n.created_at)}</div></li>`)));
