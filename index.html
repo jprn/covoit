@@ -37,6 +37,7 @@
       <a href="#/notifications" class="tab" data-tab="notifications">Notif</a>
       <a href="#/profile" class="tab" data-tab="profile">Profil</a>
     </nav>
+    <div id="toast" class="toast hidden"></div>
   </template>
 
   <!-- Pages templates -->
@@ -117,7 +118,7 @@
   <template id="tpl-create">
     <section>
       <h2>Proposer un trajet</h2>
-      <form id="ride-form" class="form">
+      <form id="ride-form" class="form" novalidate>
         <label>Type
           <select name="ride_type" required>
             <option value="go">Aller</option>

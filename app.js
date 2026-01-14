@@ -300,7 +300,7 @@ const pages = {
       };
       try{
         Store.createRide(payload);
-        alert('Trajet publié'); location.hash = `#/event/${p.event_id}`;
+        toast('Trajet publié'); location.hash = `#/event/${p.event_id}`;
       }catch(ex){ errBox.textContent = ex.message; }
     });
     return frag;
