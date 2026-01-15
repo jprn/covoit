@@ -229,7 +229,12 @@ const routes = {
 };
 
 function mountLayout(){ const root=$('#app'); root.innerHTML=''; root.append($('#tpl-layout').content.cloneNode(true)); }
-async function router(){ mountLayout(); const h=location.hash||'#home'; const [base, query]=h.split('?'); const params=new URLSearchParams(query||''); const view=routes[base]||renderHome; await view(params); setActive(base); }
+async function router(){
+  mountLayout();
+  // ensure mobile nav is closed when navigating
+  document.body.classList.remove('nav-open'); const nb=document.getElementById('nav-toggle'); if(nb) nb.setAttribute('aria-expanded','false');
+  const h=location.hash||'#home'; const [base, query]=h.split('?'); const params=new URLSearchParams(query||''); const view=routes[base]||renderHome; await view(params); setActive(base);
+}
 function setActive(base){ $$('.tab').forEach(t=> t.classList.toggle('active', t.getAttribute('href')===base)); }
 window.addEventListener('hashchange', router);
 
