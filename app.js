@@ -229,8 +229,6 @@ async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.si
   <p>${ev.desc||''}</p>
   <div class="cta-row">
     <button id="btn-ev-refresh" class="btn">Rafraîchir</button>
-    <button id="btn-api-change" class="btn">Changer API</button>
-    <button id="btn-api-health" class="btn">Tester API</button>
   </div>`;
   const list=$('#ev-rides',frag), empty=$('#ev-empty',frag), sel=$('#ev-filter-type',frag), chk=$('#ev-only-available',frag);
   async function render(){
@@ -293,23 +291,7 @@ async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.si
   });
   sel.addEventListener('change', ()=>{ render().catch(()=>{}); }); chk.addEventListener('change', ()=>{ render().catch(()=>{}); });
   const btnRefresh = $('#btn-ev-refresh', frag);
-  if (btnRefresh){ btnRefresh.addEventListener('click', async ()=>{ await loadEvent().catch(()=>{}); await render().catch(()=>{}); const c=$('#event-card'); if(c){ const ev2=Store.singleEvent(); const src2=Store.eventSource==='api'?'API':'local'; c.innerHTML = `<h2>${ev2.name}</h2><div class=\"muted\">Données: ${src2} • API: <code id=\\"api-base\\">${API_BASE}</code></div><div>${ev2.city} • ${new Date(ev2.date).toLocaleDateString()} • ${ev2.time_hint||''}</div><p>${ev2.desc||''}</p><div class=\"cta-row\"><button id=\"btn-ev-refresh\" class=\"btn\">Rafraîchir</button><button id=\"btn-api-change\" class=\"btn\">Changer API</button><button id=\"btn-api-health\" class=\"btn\">Tester API</button></div>`; } }); }
-  const btnApiChange = $('#btn-api-change', frag);
-  if (btnApiChange){ btnApiChange.addEventListener('click', async ()=>{
-    const cur = API_BASE;
-    const next = prompt('Nouvelle base API (ex: https://votredomaine.com/api)', cur);
-    if (!next) return;
-    API_BASE = next.replace(/\/$/, '');
-    localStorage.setItem('SR_API_BASE', API_BASE);
-    await loadEvent().catch(()=>{});
-    await render().catch(()=>{});
-    const code = document.getElementById('api-base'); if(code) code.textContent = API_BASE;
-  }); }
-  const btnApiHealth = $('#btn-api-health', frag);
-  if (btnApiHealth){ btnApiHealth.addEventListener('click', async ()=>{
-    try{ const h = await API.health(); toast(h?.status? `API OK: ${h.status}` : 'API OK'); }
-    catch(err){ toast(`API KO: ${err.message||'Erreur'}`); }
-  }); }
+  if (btnRefresh){ btnRefresh.addEventListener('click', async ()=>{ await loadEvent().catch(()=>{}); await render().catch(()=>{}); const c=$('#event-card'); if(c){ const ev2=Store.singleEvent(); const src2=Store.eventSource==='api'?'API':'local'; c.innerHTML = `<h2>${ev2.name}</h2><div class=\"muted\">Données: ${src2} • API: <code id=\\"api-base\\">${API_BASE}</code></div><div>${ev2.city} • ${new Date(ev2.date).toLocaleDateString()} • ${ev2.time_hint||''}</div><p>${ev2.desc||''}</p><div class=\"cta-row\"><button id=\"btn-ev-refresh\" class=\"btn\">Rafraîchir</button></div>`; } }); }
   try { await render(); } catch { /* fallback to empty list already handled in loadRides */ }
   $('#page').append(frag);
 }
