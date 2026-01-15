@@ -146,6 +146,12 @@ function ensureAuth() {
   }
 }
 
+// Single-event helper (this app targets one event only: the first in the list)
+function singleEventId(){
+  const first = (Store && Store.data && Store.data.events && Store.data.events[0]) || null;
+  return first ? first.id : 1;
+}
+
 // Layout mounting
 function mountLayout() {
   const app = $("#app");
@@ -188,7 +194,7 @@ const pages = {
     return frag;
   },
   event: async (params) => {
-    const id = params[0];
+    const id = params[0] || String(singleEventId());
     const frag = $("#tpl-event").content.cloneNode(true);
     const header = $("#event-header", frag);
     const ev = Store.data.events.find(e=>String(e.id)===String(id));
@@ -197,8 +203,8 @@ const pages = {
 
     const btnC = $("#btn-create-from-event", frag);
     const btnF = $("#btn-find-from-event", frag);
-    btnC.href = `#/create?event_id=${ev.id}`;
-    btnF.href = `#/rides?event_id=${ev.id}`;
+    btnC.href = `#/create`;
+    btnF.href = `#/rides`;
 
     // rides list
     const list = $("#ride-list", frag); const empty = $("#ride-empty", frag);
