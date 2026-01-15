@@ -6,16 +6,28 @@ const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 // Store
 const LS_KEY = 'sportride_single_event_v1';
 const LS_OWNER_VERIF = 'sportride_owner_verif_v1';
+const LS_DEVICE_ID = 'sportride_device_id_v1';
 const Store = {
   data: null,
+  deviceId: null,
+  ensureDeviceId(){
+    if (this.deviceId) return this.deviceId;
+    let id = localStorage.getItem(LS_DEVICE_ID);
+    if (!id){
+      id = (globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      localStorage.setItem(LS_DEVICE_ID, id);
+    }
+    this.deviceId = id;
+    return id;
+  },
   load(){ try{ this.data = JSON.parse(localStorage.getItem(LS_KEY))||null; }catch{ this.data=null; }
     if(!this.data){ this.seed(); }
+    this.ensureDeviceId();
   },
   save(){ localStorage.setItem(LS_KEY, JSON.stringify(this.data)); },
   seed(){
     const d = window.DemoData;
     this.data = {
-      currentUser: d.currentUser,
       event: d.event,
       rides: d.rides,
       requests: d.requests,
@@ -29,12 +41,11 @@ const Store = {
   addRide(payload){ const id=this.data.next.ride++; const r={ id, ...payload, created_at:new Date().toISOString() }; this.data.rides.push(r); this.save(); return r; },
   listRides({type}={}){ let r=[...this.data.rides]; if(type && type!=='any') r=r.filter(x=>x.ride_type===type); r=r.sort((a,b)=> new Date(a.depart_at)-new Date(b.depart_at)); return r; },
   getRide(id){ return this.data.rides.find(r=>String(r.id)===String(id)); },
-  addRequest({ride_id, passenger, seats, message}){ const id=this.data.next.request++; const req={ id, ride_id, passenger, seats, message, status:'PENDING', created_at:new Date().toISOString() }; this.data.requests.push(req); this.save(); return req; },
-  listMyRequests(){ const me=this.data.currentUser?.nickname||'Invité'; return this.data.requests.filter(r=>r.passenger===me).sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)); },
+  addRequest({ride_id, passenger, seats, message}){ const id=this.data.next.request++; const req={ id, ride_id, passenger, seats, message, requester_device_id: this.ensureDeviceId(), status:'PENDING', created_at:new Date().toISOString() }; this.data.requests.push(req); this.save(); return req; },
+  listMyRequests(){ const me = this.ensureDeviceId(); return this.data.requests.filter(r=>r.requester_device_id===me).sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)); },
   setRequestStatus(id, status){ const r=this.data.requests.find(x=>x.id===id); if(r){ r.status=status; this.save(); } return r; },
   addMessage({request_id, sender, text}){ const id=this.data.next.message++; const m={ id, request_id, sender, text, created_at:new Date().toISOString() }; this.data.messages.push(m); this.save(); return m; },
   requestsByRide(rideId){ return this.data.requests.filter(r=> r.ride_id===rideId); },
-  isOwner(rideId){ const ride=this.getRide(rideId); const me=this.data.currentUser||{}; if(!ride) return false; if(ride.driver && ride.driver===me.nickname){ if(!ride.driver_phone) return true; return (ride.driver_phone===me.phone); } return false; },
   seatsLeft(rideId){
     const ride = this.getRide(rideId);
     if (!ride) return 0;
@@ -72,8 +83,8 @@ function refreshReqCounters(rideId){
     else { pend.classList.add('hidden'); pend.textContent=''; }
   }
 }
-function buildReqListHTML(rideId){ const items = Store.requestsByRide(rideId); if (!items.length) return '<li class="card">Aucune demande</li>'; const me=Store.data.currentUser?.nickname||'Invité'; const owner=Store.isOwner(rideId);
-  return items.map(x=>{ const mine = x.passenger===me; const badge = x.status==='PENDING'?'badge pending': x.status==='ACCEPTED'?'badge accepted':'badge refused';
+function buildReqListHTML(rideId){ const items = Store.requestsByRide(rideId); if (!items.length) return '<li class="card">Aucune demande</li>'; const me=Store.ensureDeviceId();
+  return items.map(x=>{ const mine = x.requester_device_id && x.requester_device_id===me; const badge = x.status==='PENDING'?'badge pending': x.status==='ACCEPTED'?'badge accepted':'badge refused';
     const cancelBtn = (mine && x.status==='PENDING')? `<button type=\"button\" class=\"btn small btn-cancel-req\" data-req=\"${x.id}\">Annuler</button>`: '';
     const ownerBtns = (x.status==='PENDING')? `<button type=\"button\" class=\"btn small primary btn-accept-req\" data-req=\"${x.id}\">Accepter</button> <button type=\"button\" class=\"btn small danger btn-refuse-req\" data-req=\"${x.id}\">Refuser</button>`: '';
     return `<li class=\"card\"><div><strong>${x.passenger}</strong> • ${x.seats} place(s) <span class=\"${badge}\" style=\"margin-left:8px\">${x.status}</span></div><div class=\"muted\">${x.message||''}</div><div class=\"cta-row\">${ownerBtns} ${cancelBtn}</div></li>`; }).join(''); }
@@ -86,7 +97,6 @@ const routes = {
   '#search': renderSearch,
   '#ride': renderRide,
   '#requests': renderRequests,
-  '#profile': renderProfile,
 };
 
 function mountLayout(){ const root=$('#app'); root.innerHTML=''; root.append($('#tpl-layout').content.cloneNode(true)); }
@@ -135,14 +145,12 @@ async function renderEvent(){ const ev=Store.singleEvent(); const frag=$('#tpl-e
   sel.addEventListener('change', render); chk.addEventListener('change', render); render(); $('#page').append(frag); }
 
 async function renderOffer(){ const frag=$('#tpl-offer').content.cloneNode(true); const form=$('#offer-form',frag), err=$('#offer-error',frag);
-  const me=Store.data.currentUser||{}; form.nickname.value=me.nickname||''; form.phone.value=me.phone||'';
   form.addEventListener('submit',(e)=>{ e.preventDefault(); err.textContent=''; const fd=new FormData(form); const p=Object.fromEntries(fd.entries());
     const required=[['ride_type','Type'],['depart_at','Date/heure'],['origin','Départ'],['seats','Places'],['nickname','Pseudo'],['phone','Téléphone']];
     for(const [k,label] of required){ if(!p[k]||String(p[k]).trim()===''){ err.textContent=`${label} est requis`; form.querySelector(`[name="${k}"]`).focus(); return; }}
-    Store.data.currentUser={ ...me, nickname:p.nickname, phone:p.phone }; Store.save();
     // generate a 6-digit PIN for the ride owner
     const pin = String(Math.floor(100000 + Math.random()*900000));
-    const payload={ event_id:Store.singleEvent().id, ride_type:p.ride_type, depart_at:new Date(p.depart_at).toISOString(), origin_text:p.origin, seats_total:Number(p.seats), driver: Store.data.currentUser.nickname||'Invité', driver_phone: Store.data.currentUser.phone||'', owner_pin: pin };
+    const payload={ event_id:Store.singleEvent().id, ride_type:p.ride_type, depart_at:new Date(p.depart_at).toISOString(), origin_text:p.origin, seats_total:Number(p.seats), driver: p.nickname||'Invité', driver_phone: p.phone||'', owner_pin: pin };
     const ride=Store.addRide(payload);
     // mark verified on this device and inform the user
     OwnerAuth.verify(ride.id);
@@ -187,9 +195,6 @@ async function renderRide(params){ const id=params.get('id'); const r=Store.getR
   <div>Places restantes: ${leftNow}/${r.seats_total} ${leftNow<=0? '<span class="badge full">Complet</span>':''}</div>
   <div>Conducteur: ${r.driver||'Invité'}</div>`;
   const modal=$('#req-modal',frag), btn=$('#btn-request',frag), form=$('#req-form',frag);
-  // Prefill requester info from profile
-  if (form.passenger_name) form.passenger_name.value = Store.data.currentUser?.nickname||'';
-  if (form.passenger_phone) form.passenger_phone.value = Store.data.currentUser?.phone||'';
   // Requests list on ride detail
   const reqSection = document.createElement('section');
   reqSection.innerHTML = `<h3>Demandes reçues</h3><ul id="ride-reqs-list" class="list">${buildReqListHTML(r.id)}</ul>`;
@@ -239,11 +244,8 @@ async function renderRide(params){ const id=params.get('id'); const r=Store.getR
       const rq=Store.setRequestStatus(id,'REFUSED'); if(rq){ toast('Demande refusée'); const ul=reqSection.querySelector('#ride-reqs-list'); if(ul) ul.innerHTML = buildReqListHTML(r.id); refreshReqCounters(r.id); } }
   });
   form.addEventListener('submit', (e)=>{ e.preventDefault(); const p=Object.fromEntries(new FormData(form).entries());
-    const name = (p.passenger_name&&p.passenger_name.trim()) || (Store.data.currentUser?.nickname)||'Invité';
-    const phone = (p.passenger_phone&&p.passenger_phone.trim()) || (Store.data.currentUser?.phone)||'';
-    // persist back to profile for convenience
-    Store.data.currentUser = { ...(Store.data.currentUser||{}), nickname:name, phone:phone };
-    Store.save();
+    const name = (p.passenger_name&&p.passenger_name.trim()) || 'Invité';
+    const phone = (p.passenger_phone&&p.passenger_phone.trim()) || '';
     const seats=Number(p.seats||1);
     // Guard: prevent creating a request if not enough seats at submission time
     if (Store.seatsLeft(r.id) < seats) { toast('Trajet complet ou places insuffisantes'); closeModal(); return; }
@@ -275,12 +277,6 @@ async function renderRequests(){ const frag=$('#tpl-requests').content.cloneNode
   }
   list.addEventListener('click', (e)=>{ const btn=e.target.closest('.btn-cancel-req'); if (!btn) return; const id=Number(btn.getAttribute('data-req')); const req = Store.setRequestStatus(id, 'CANCELLED'); if(req){ toast('Demande annulée'); refreshReqCounters(req.ride_id); render(); }});
   render();
-  $('#page').append(frag); }
-
-async function renderProfile(){ const frag=$('#tpl-profile').content.cloneNode(true); const f=$('#profile-form',frag); const me=Store.data.currentUser||{}; f.nickname.value=me.nickname||''; f.phone.value=me.phone||'';
-  f.pref_music.checked=!!me.prefs?.music; f.pref_smoking.checked=!!me.prefs?.smoking; f.pref_pets.checked=!!me.prefs?.pets; f.pref_talk.checked=!!me.prefs?.talk;
-  f.addEventListener('submit', (e)=>{ e.preventDefault(); const p=Object.fromEntries(new FormData(f).entries()); Store.data.currentUser={ id:100, nickname:p.nickname||'Invité', phone:p.phone||'', prefs:{ music:!!p.pref_music, smoking:!!p.pref_smoking, pets:!!p.pref_pets, talk:!!p.pref_talk } }; Store.save(); toast('Profil enregistré'); });
-  $('#btn-reset',frag).addEventListener('click', ()=>{ if(confirm('Réinitialiser toutes les données locales ?')){ Store.reset(); toast('Données réinitialisées'); location.hash='#home'; } });
   $('#page').append(frag); }
 
 // Bootstrap

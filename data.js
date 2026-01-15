@@ -1,6 +1,5 @@
 // Single-event demo data (100% local)
 window.DemoData = {
-  currentUser: { id: 100, nickname: 'Invité', phone: '', prefs: { smoking:false, pets:true, music:true, talk:true } },
   event: { id: 1, name: 'Trail des Cimes', sport: 'trail', date: new Date(Date.now()+20*86400000).toISOString(), time_hint: '08:00', city: 'Annecy', address: "Lac d'Annecy", desc: 'Trail autour du lac et Semnoz' },
   rides: [
     { id:1, event_id:1, ride_type:'go', depart_at:new Date(Date.now()+10*86400000+(7*60+30)*60000).toISOString(), origin_text:'Lyon Part-Dieu', seats_total:4, driver:'Alice', owner_pin:'111111', created_at:new Date().toISOString() },

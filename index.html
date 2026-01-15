@@ -23,7 +23,6 @@
       <a class="tab" data-tab="offer" href="#offer">Proposer</a>
       <a class="tab" data-tab="search" href="#search">Rechercher</a>
       <a class="tab" data-tab="requests" href="#requests">Mes demandes</a>
-      <a class="tab" data-tab="profile" href="#profile">Profil</a>
     </nav>
     <div id="toast" class="toast hidden"></div>
   </template>
@@ -156,27 +155,6 @@
       <h2>Mes demandes</h2>
       <ul id="req-list" class="list"></ul>
       <div id="req-empty" class="empty hidden">Aucune demande pour l'instant.</div>
-    </section>
-  </template>
-
-  <template id="tpl-profile">
-    <section>
-      <h2>Mon profil</h2>
-      <form id="profile-form" class="form">
-        <label>Pseudo<input type="text" name="nickname" required /></label>
-        <label>Téléphone<input type="tel" name="phone" /></label>
-        <fieldset>
-          <legend>Préférences</legend>
-          <label><input type="checkbox" name="pref_music" /> Musique</label>
-          <label><input type="checkbox" name="pref_smoking" /> Fumeur</label>
-          <label><input type="checkbox" name="pref_pets" /> Animaux</label>
-          <label><input type="checkbox" name="pref_talk" /> Discussion</label>
-        </fieldset>
-        <div class="cta-row">
-          <button class="btn primary" type="submit">Enregistrer</button>
-          <button class="btn danger" id="btn-reset" type="button">Réinitialiser données</button>
-        </div>
-      </form>
     </section>
   </template>
 
