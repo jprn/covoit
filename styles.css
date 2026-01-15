@@ -13,8 +13,13 @@
 
 @media (max-width: 760px){
   .burger{display:inline-flex}
-  .tabbar{position:fixed;top:60px;left:0;right:0;display:none;flex-direction:column;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#f6f1e6 0%,rgba(246,241,230,.98) 100%)}
-  body.nav-open .tabbar{display:flex}
+  /* Full-width overlay panel */
+  .tabbar{position:fixed;top:60px;left:0;right:0;bottom:0;display:none;flex-direction:column;gap:6px;padding:14px 16px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#f6f1e6 0%,rgba(246,241,230,.98) 100%);overflow:auto;z-index:5;opacity:0;transform:translateY(-12px);pointer-events:none;transition:transform .22s ease, opacity .18s ease}
+  body.nav-open .tabbar{display:flex;opacity:1;transform:translateY(0);pointer-events:auto}
+  /* Prevent background scroll and add dim backdrop */
+  body.nav-open{overflow:hidden}
+  body.nav-open::after{content:"";position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:2}
+  .topbar{z-index:6}
 }
 
 h1,h2,h3{margin:10px 0}
