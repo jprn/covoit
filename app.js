@@ -390,9 +390,9 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   await loadRequestsByRide(r.id);
   const leftNow = seatsLeftFrom(r, cachedRequestsByRide(r.id));
   box.innerHTML = `<h2>${r.origin_text} → ${Store.singleEvent().name} (${Store.singleEvent().city})</h2>
-  <div>${fmtDateTime(r.depart_at)} • ${r.ride_type.toUpperCase()}</div>
-  <div>Places restantes: ${leftNow}/${r.seats_total} ${leftNow<=0? '<span class="badge full">Complet</span>':''}</div>
-  <div>Conducteur: ${r.driver_name||r.driver||'Invité'}</div>
+  <div><strong>Heure de départ : </strong>${fmtDateTime(r.depart_at)} • ${r.ride_type.toUpperCase()}</div>
+  <div>Places restantes : ${leftNow}/${r.seats_total} ${leftNow<=0? '<span class="badge full">Complet</span>':''}</div>
+  <div>Conducteur: ${r.driver_name||r.driver||'Invité'} Tel : ${r.driver_phone}</div>
   <div class="cta-row"><button id="btn-edit-ride" class="btn">Modifier</button><button id="btn-delete-ride" class="btn danger">Supprimer</button></div>`;
   const modal=$('#req-modal',frag), btn=$('#btn-request',frag), form=$('#req-form',frag);
   const editModal=$('#edit-modal',frag), editForm=$('#edit-form',frag);
