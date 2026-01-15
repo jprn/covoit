@@ -54,6 +54,7 @@
           <option value="go">Aller</option>
           <option value="return">Retour</option>
         </select>
+        <label><input type="checkbox" id="ev-only-available" /> Places disponibles uniquement</label>
       </div>
       <ul id="ev-rides" class="list"></ul>
       <div id="ev-empty" class="empty hidden">Aucun trajet pour le moment.</div>
@@ -103,11 +104,13 @@
         <input id="search-time" type="time" />
         <input id="search-seats" type="number" min="1" max="8" placeholder="Places min" />
         <input id="search-cost" type="number" min="0" placeholder="Coût max" />
+        <label><input type="checkbox" id="search-only-available" /> Places dispo uniquement</label>
         <select id="search-sort">
           <option value="earliest">Plus tôt</option>
           <option value="seats">Places</option>
           <option value="cost">Coût</option>
         </select>
+        <button type="button" id="search-reset" class="btn">Réinitialiser</button>
       </div>
       <ul id="search-list" class="list"></ul>
       <div id="search-empty" class="empty hidden">Aucun trajet ne correspond. <a href="#offer">Proposer un trajet</a></div>
@@ -126,6 +129,15 @@
             <label>Places
               <input type="number" name="seats" min="1" max="8" value="1" required />
             </label>
+            <fieldset>
+              <legend>Vos coordonnées</legend>
+              <label>Nom / Pseudo
+                <input type="text" name="passenger_name" placeholder="Votre nom" required />
+              </label>
+              <label>Téléphone
+                <input type="tel" name="passenger_phone" placeholder="06 ..." required />
+              </label>
+            </fieldset>
             <label>Message
               <textarea name="message" rows="3" placeholder="Votre message"></textarea>
             </label>

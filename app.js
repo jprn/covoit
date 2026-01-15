@@ -95,8 +95,8 @@ async function renderHome(){ const frag=$('#tpl-home').content.cloneNode(true); 
 
 async function renderEvent(){ const ev=Store.singleEvent(); const frag=$('#tpl-event').content.cloneNode(true); const card=$('#event-card',frag);
   card.innerHTML = `<h2>${ev.name}</h2><div>${ev.city} • ${new Date(ev.date).toLocaleDateString()} • ${ev.time_hint||''}</div><p>${ev.desc||''}</p>`;
-  const list=$('#ev-rides',frag), empty=$('#ev-empty',frag), sel=$('#ev-filter-type',frag);
-  function render(){ const rides=Store.listRides({type:sel.value}); list.innerHTML=''; empty.classList.toggle('hidden', rides.length>0); rides.forEach(r=>{ list.insertAdjacentHTML('beforeend', rideCard(r)); }); }
+  const list=$('#ev-rides',frag), empty=$('#ev-empty',frag), sel=$('#ev-filter-type',frag), chk=$('#ev-only-available',frag);
+  function render(){ let rides=Store.listRides({type:sel.value}); if (chk.checked) rides = rides.filter(r=> Store.seatsLeft(r.id)>0); list.innerHTML=''; empty.classList.toggle('hidden', rides.length>0); rides.forEach(r=>{ list.insertAdjacentHTML('beforeend', rideCard(r)); }); }
   // Delegated interactions: toggle requests list and cancel
   list.addEventListener('click', (e)=>{
     const btn = e.target.closest('.btn-reqs');
@@ -108,7 +108,7 @@ async function renderEvent(){ const ev=Store.singleEvent(); const frag=$('#tpl-e
       }
     }
   });
-  sel.addEventListener('change', render); render(); $('#page').append(frag); }
+  sel.addEventListener('change', render); chk.addEventListener('change', render); render(); $('#page').append(frag); }
 
 async function renderOffer(){ const frag=$('#tpl-offer').content.cloneNode(true); const form=$('#offer-form',frag), err=$('#offer-error',frag);
   const me=Store.data.currentUser||{}; form.nickname.value=me.nickname||''; form.phone.value=me.phone||'';
@@ -122,10 +122,10 @@ async function renderOffer(){ const frag=$('#tpl-offer').content.cloneNode(true)
   $('#page').append(frag); }
 
 async function renderSearch(){ const frag=$('#tpl-search').content.cloneNode(true); const list=$('#search-list',frag), empty=$('#search-empty',frag);
-  const sel=$('#search-type',frag), city=$('#search-city',frag), time=$('#search-time',frag), seats=$('#search-seats',frag), cost=$('#search-cost',frag), sort=$('#search-sort',frag);
+  const sel=$('#search-type',frag), city=$('#search-city',frag), time=$('#search-time',frag), seats=$('#search-seats',frag), cost=$('#search-cost',frag), sort=$('#search-sort',frag), only=$('#search-only-available',frag);
   function apply(){ let r=Store.listRides({type:sel.value}); if(city.value) r=r.filter(x=> x.origin_text.toLowerCase().includes(city.value.toLowerCase()));
     if(time.value){ const [hh,mm]=time.value.split(':').map(Number); r=r.filter(x=>{ const d=new Date(x.depart_at); const t=d.getHours()*60+d.getMinutes(); const target=hh*60+mm; return Math.abs(t-target)<=60; }); }
-    if(seats.value) r=r.filter(x=> Store.seatsLeft(x.id)>=Number(seats.value));
+    if(seats.value) r=r.filter(x=> Store.seatsLeft(x.id)>=Number(seats.value)); if(only.checked) r=r.filter(x=> Store.seatsLeft(x.id)>0);
     if(sort.value==='earliest') r.sort((a,b)=> new Date(a.depart_at)-new Date(b.depart_at)); if(sort.value==='seats') r.sort((a,b)=> (Store.seatsLeft(b.id))-(Store.seatsLeft(a.id))); if(sort.value==='cost') r.sort((a,b)=> (a.price||0)-(b.price||0));
     list.innerHTML=''; empty.classList.toggle('hidden', r.length>0); r.forEach(x=> list.insertAdjacentHTML('beforeend', rideCard(x)));
   }
@@ -137,7 +137,9 @@ async function renderSearch(){ const frag=$('#tpl-search').content.cloneNode(tru
     if (cancel){ const id = Number(cancel.getAttribute('data-req')); const req = Store.setRequestStatus(id, 'CANCELLED'); if(req){ toast('Demande annulée'); } const rideId = req?.ride_id; if (rideId){ refreshReqCounters(rideId); const ul=document.getElementById(`reqs-${rideId}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(rideId); } }
     }
   });
-  [sel,city,time,seats,cost,sort].forEach(el=> el.addEventListener('input', apply)); apply();
+  const resetBtn = $('#search-reset',frag);
+  if (resetBtn){ resetBtn.addEventListener('click', ()=>{ sel.value='any'; city.value=''; time.value=''; seats.value=''; cost.value=''; sort.value='earliest'; only.checked=false; apply(); }); }
+  [sel,city,time,seats,cost,sort,only].forEach(el=> el.addEventListener('input', apply)); apply();
   $('#page').append(frag); }
 
 async function renderRide(params){ const id=params.get('id'); const r=Store.getRide(id); const frag=$('#tpl-ride').content.cloneNode(true); const box=$('#ride-details',frag);
@@ -148,6 +150,9 @@ async function renderRide(params){ const id=params.get('id'); const r=Store.getR
   <div>Places restantes: ${leftNow}/${r.seats_total} ${leftNow<=0? '<span class="badge full">Complet</span>':''}</div>
   <div>Conducteur: ${r.driver||'Invité'}</div>`;
   const modal=$('#req-modal',frag), btn=$('#btn-request',frag), form=$('#req-form',frag);
+  // Prefill requester info from profile
+  if (form.passenger_name) form.passenger_name.value = Store.data.currentUser?.nickname||'';
+  if (form.passenger_phone) form.passenger_phone.value = Store.data.currentUser?.phone||'';
   // Requests list on ride detail
   const reqSection = document.createElement('section');
   reqSection.innerHTML = `<h3>Demandes reçues</h3><ul id="ride-reqs-list" class="list">${buildReqListHTML(r.id)}</ul>`;
@@ -187,10 +192,16 @@ async function renderRide(params){ const id=params.get('id'); const r=Store.getR
   modal.addEventListener('click', (e)=>{ if (e.target === modal) closeModal(); });
   // Close on Escape key while modal is visible
   frag.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && !modal.classList.contains('hidden')) closeModal(); });
-  form.addEventListener('submit', (e)=>{ e.preventDefault(); const p=Object.fromEntries(new FormData(form).entries()); const me=Store.data.currentUser?.nickname||'Invité'; const seats=Number(p.seats||1);
+  form.addEventListener('submit', (e)=>{ e.preventDefault(); const p=Object.fromEntries(new FormData(form).entries());
+    const name = (p.passenger_name&&p.passenger_name.trim()) || (Store.data.currentUser?.nickname)||'Invité';
+    const phone = (p.passenger_phone&&p.passenger_phone.trim()) || (Store.data.currentUser?.phone)||'';
+    // persist back to profile for convenience
+    Store.data.currentUser = { ...(Store.data.currentUser||{}), nickname:name, phone:phone };
+    Store.save();
+    const seats=Number(p.seats||1);
     // Guard: prevent creating a request if not enough seats at submission time
     if (Store.seatsLeft(r.id) < seats) { toast('Trajet complet ou places insuffisantes'); closeModal(); return; }
-    const req=Store.addRequest({ ride_id:r.id, passenger:me, seats, message:p.message||'' }); toast('Demande envoyée'); closeModal();
+    const req=Store.addRequest({ ride_id:r.id, passenger:name, seats, message:(p.message||'')+ (phone? ` (tel: ${phone})`:'') }); toast('Demande envoyée'); closeModal();
     // auto-accept after 3s if enough seats (simple simulation)
     setTimeout(()=>{ const left = Store.seatsLeft(r.id); if (left >= req.seats) { const rr = Store.setRequestStatus(req.id, 'ACCEPTED'); if(rr){ toast('Demande acceptée'); } } else { Store.setRequestStatus(req.id, 'REFUSED'); toast('Demande refusée (plus de places)'); }
       // refresh details display
