@@ -396,8 +396,6 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   <div class="cta-row"><button id="btn-edit-ride" class="btn">Modifier</button><button id="btn-delete-ride" class="btn danger">Supprimer</button></div>`;
   const modal=$('#req-modal',frag), btn=$('#btn-request',frag), form=$('#req-form',frag);
   const editModal=$('#edit-modal',frag), editForm=$('#edit-form',frag);
-  const btnEdit = $('#btn-edit-ride', frag);
-  const btnDelete = $('#btn-delete-ride', frag);
   // Requests list on ride detail
   const reqSection = document.createElement('section');
   reqSection.innerHTML = `<h3>Demandes reçues</h3><ul id="ride-reqs-list" class="list">${buildReqListHTML(r.id)}</ul>`;
@@ -438,7 +436,7 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   // Edit modal handlers
   const closeEdit = ()=> editModal.classList.add('hidden');
   const openEdit = ()=>{
-    if (!editModal) return;
+    if (!editModal){ toast('Modal d\'édition introuvable'); return; }
     // Prefill fields from current ride r
     if (editForm){
       if (editForm.ride_type) editForm.ride_type.value = (r.ride_type||'go');
@@ -454,18 +452,46 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   };
   const editX = $('#edit-x', frag); if (editX) editX.addEventListener('click', closeEdit);
   const editCancel = $('#edit-cancel', frag); if (editCancel) editCancel.addEventListener('click', closeEdit);
-  if (btnEdit) btnEdit.addEventListener('click', openEdit);
-  if (btnDelete) btnDelete.addEventListener('click', async ()=>{
-    if (!confirm('Supprimer ce trajet ? Cette action est irréversible.')) return;
-    const pin = prompt('Entrez le code PIN conducteur pour ce trajet');
-    if (!pin) return;
-    try{
-      await API.deleteRide({ ride_id: r.id, pin });
-      toast('Trajet supprimé');
-      await loadRides();
-      location.hash = '#event';
-    }catch(err){ toast(err.message||'Erreur'); }
+  // Delegated clicks for edit/delete on the #ride-details box (survive innerHTML refresh)
+  box.addEventListener('click', async (e)=>{
+    const be = e.target.closest('#btn-edit-ride');
+    if (be){ e.preventDefault(); openEdit(); return; }
+    const bd = e.target.closest('#btn-delete-ride');
+    if (bd){
+      e.preventDefault();
+      if (!confirm('Supprimer ce trajet ? Cette action est irréversible.')) return;
+      const pin = prompt('Entrez le code PIN conducteur pour ce trajet');
+      if (!pin) return;
+      try{
+        await API.deleteRide({ ride_id: r.id, pin });
+        toast('Trajet supprimé');
+        await loadRides();
+        location.hash = '#event';
+      }catch(err){ toast(err.message||'Erreur'); }
+      return;
+    }
   });
+  // Fallback delegation at document level (in case of dynamic re-renders)
+  const docClickHandler = async (e)=>{
+    if (!document.body.contains(box)) { document.removeEventListener('click', docClickHandler); return; }
+    const be = e.target.closest && e.target.closest('#btn-edit-ride');
+    if (be){ e.preventDefault(); openEdit(); return; }
+    const bd = e.target.closest && e.target.closest('#btn-delete-ride');
+    if (bd){
+      e.preventDefault();
+      if (!confirm('Supprimer ce trajet ? Cette action est irréversible.')) return;
+      const pin = prompt('Entrez le code PIN conducteur pour ce trajet');
+      if (!pin) return;
+      try{
+        await API.deleteRide({ ride_id: r.id, pin });
+        toast('Trajet supprimé');
+        await loadRides();
+        location.hash = '#event';
+      }catch(err){ toast(err.message||'Erreur'); }
+      return;
+    }
+  };
+  document.addEventListener('click', docClickHandler);
   if (editForm){ editForm.addEventListener('submit', async (e)=>{
     e.preventDefault();
     const fd = new FormData(editForm); const p = Object.fromEntries(fd.entries());
