@@ -123,12 +123,12 @@ async function renderEvent(){ const ev=Store.singleEvent(); const frag=$('#tpl-e
     }
     const accept = e.target.closest('.btn-accept-req');
     if (accept){ const id=Number(accept.getAttribute('data-req')); const reqObj = Store.data.requests.find(x=>x.id===id); const ride = reqObj && Store.getRide(reqObj.ride_id);
-      if (ride && !(Store.isOwner(ride.id) || OwnerAuth.isVerified(ride.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!==ride.owner_pin){ toast('PIN incorrect'); return; } OwnerAuth.verify(ride.id); }
+      if (ride && !(Store.isOwner(ride.id) || OwnerAuth.isVerified(ride.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!==ride.owner_pin){ toast('Code PIN incorrect'); return; } OwnerAuth.verify(ride.id); }
       const req=Store.setRequestStatus(id,'ACCEPTED'); if(req){ toast('Demande acceptée'); refreshReqCounters(req.ride_id); const ul=document.getElementById(`reqs-${req.ride_id}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(req.ride_id); } refreshRideCards(req.ride_id); }
     }
     const refuse = e.target.closest('.btn-refuse-req');
     if (refuse){ const id=Number(refuse.getAttribute('data-req')); const reqObj = Store.data.requests.find(x=>x.id===id); const ride = reqObj && Store.getRide(reqObj.ride_id);
-      if (ride && !(Store.isOwner(ride.id) || OwnerAuth.isVerified(ride.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!==ride.owner_pin){ toast('PIN incorrect'); return; } OwnerAuth.verify(ride.id); }
+      if (ride && !(Store.isOwner(ride.id) || OwnerAuth.isVerified(ride.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!==ride.owner_pin){ toast('Code PIN incorrect'); return; } OwnerAuth.verify(ride.id); }
       const req=Store.setRequestStatus(id,'REFUSED'); if(req){ toast('Demande refusée'); refreshReqCounters(req.ride_id); const ul=document.getElementById(`reqs-${req.ride_id}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(req.ride_id); } refreshRideCards(req.ride_id); }
     }
   });
@@ -168,10 +168,10 @@ async function renderSearch(){ const frag=$('#tpl-search').content.cloneNode(tru
     if (cancel){ const id = Number(cancel.getAttribute('data-req')); const req = Store.setRequestStatus(id, 'CANCELLED'); if(req){ toast('Demande annulée'); } const rideId = req?.ride_id; if (rideId){ refreshReqCounters(rideId); const ul=document.getElementById(`reqs-${rideId}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(rideId); } }
     }
     const accept = e.target.closest('.btn-accept-req'); if (accept){ const id=Number(accept.getAttribute('data-req')); const reqObj = Store.data.requests.find(x=>x.id===id); const ride = reqObj && Store.getRide(reqObj.ride_id);
-      if (ride && !(Store.isOwner(ride.id) || OwnerAuth.isVerified(ride.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!==ride.owner_pin){ toast('PIN incorrect'); return; } OwnerAuth.verify(ride.id); }
+      if (ride && !(Store.isOwner(ride.id) || OwnerAuth.isVerified(ride.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!==ride.owner_pin){ toast('Code PIN incorrect'); return; } OwnerAuth.verify(ride.id); }
       const req=Store.setRequestStatus(id,'ACCEPTED'); if(req){ toast('Demande acceptée'); refreshReqCounters(req.ride_id); const ul=document.getElementById(`reqs-${req.ride_id}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(req.ride_id); } refreshRideCards(req.ride_id); }}
     const refuse = e.target.closest('.btn-refuse-req'); if (refuse){ const id=Number(refuse.getAttribute('data-req')); const reqObj = Store.data.requests.find(x=>x.id===id); const ride = reqObj && Store.getRide(reqObj.ride_id);
-      if (ride && !(Store.isOwner(ride.id) || OwnerAuth.isVerified(ride.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!==ride.owner_pin){ toast('PIN incorrect'); return; } OwnerAuth.verify(ride.id); }
+      if (ride && !(Store.isOwner(ride.id) || OwnerAuth.isVerified(ride.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!==ride.owner_pin){ toast('Code PIN incorrect'); return; } OwnerAuth.verify(ride.id); }
       const req=Store.setRequestStatus(id,'REFUSED'); if(req){ toast('Demande refusée'); refreshReqCounters(req.ride_id); const ul=document.getElementById(`reqs-${req.ride_id}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(req.ride_id); } refreshRideCards(req.ride_id); }}
   });
   const resetBtn = $('#search-reset',frag);
@@ -232,10 +232,10 @@ async function renderRide(params){ const id=params.get('id'); const r=Store.getR
   // Owner actions in detail (with PIN)
   reqSection.addEventListener('click', (e)=>{
     const accept = e.target.closest('.btn-accept-req');
-    if (accept){ const id=Number(accept.getAttribute('data-req')); if(!(Store.isOwner(r.id) || OwnerAuth.isVerified(r.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!== (Store.getRide(r.id)?.owner_pin||'')){ toast('PIN incorrect'); return; } OwnerAuth.verify(r.id); }
+    if (accept){ const id=Number(accept.getAttribute('data-req')); if(!(Store.isOwner(r.id) || OwnerAuth.isVerified(r.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!== (Store.getRide(r.id)?.owner_pin||'')){ toast('Code PIN incorrect'); return; } OwnerAuth.verify(r.id); }
       const rq=Store.setRequestStatus(id,'ACCEPTED'); if(rq){ toast('Demande acceptée'); const ul=reqSection.querySelector('#ride-reqs-list'); if(ul) ul.innerHTML = buildReqListHTML(r.id); refreshReqCounters(r.id); const leftAfter=Store.seatsLeft(r.id); if (leftAfter<=0){ btn.classList.add('disabled'); btn.setAttribute('disabled','disabled'); } } }
     const refuse = e.target.closest('.btn-refuse-req');
-    if (refuse){ const id=Number(refuse.getAttribute('data-req')); if(!(Store.isOwner(r.id) || OwnerAuth.isVerified(r.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!== (Store.getRide(r.id)?.owner_pin||'')){ toast('PIN incorrect'); return; } OwnerAuth.verify(r.id); }
+    if (refuse){ const id=Number(refuse.getAttribute('data-req')); if(!(Store.isOwner(r.id) || OwnerAuth.isVerified(r.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!== (Store.getRide(r.id)?.owner_pin||'')){ toast('Code PIN incorrect'); return; } OwnerAuth.verify(r.id); }
       const rq=Store.setRequestStatus(id,'REFUSED'); if(rq){ toast('Demande refusée'); const ul=reqSection.querySelector('#ride-reqs-list'); if(ul) ul.innerHTML = buildReqListHTML(r.id); refreshReqCounters(r.id); } }
   });
   form.addEventListener('submit', (e)=>{ e.preventDefault(); const p=Object.fromEntries(new FormData(form).entries());
