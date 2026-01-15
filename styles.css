@@ -6,9 +6,9 @@
 .brand-logo{width:54px;height:54px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.65);border:1px solid rgba(16,49,42,.12);box-shadow:0 10px 20px rgba(16,49,42,.06)}
 .brand-text{display:flex;flex-direction:column;gap:2px}
 .topbar h1{margin:0;font-size:18px;letter-spacing:.25px;color:var(--primary-2);line-height:1.1}
-.tabbar{position:fixed;left:0;right:0;bottom:0;background:rgba(42,168,154,.92);backdrop-filter:saturate(160%) blur(8px);display:flex;gap:10px;justify-content:space-around;padding:10px 10px;border-top:1px solid rgba(16,49,42,.12)}
-.tab{color:#eafffb;text-decoration:none;padding:10px 12px;border-radius:999px;font-weight:600;font-size:14px;line-height:1}
-.tab.active{background:var(--accent);color:#fff}
+.tabbar{position:sticky;top:60px;z-index:3;background:linear-gradient(180deg,#f6f1e6 0%,rgba(246,241,230,.92) 100%);backdrop-filter:saturate(140%) blur(6px);display:flex;gap:8px;justify-content:flex-start;padding:8px 16px;border-bottom:1px solid var(--border)}
+.tab{color:var(--primary-2);text-decoration:none;padding:10px 12px;border-radius:10px;font-weight:700;font-size:14px;line-height:1;background:transparent}
+.tab.active{background:#fff;color:var(--primary-2);box-shadow:inset 0 -3px 0 var(--accent);}
 
 h1,h2,h3{margin:10px 0}
 h2{font-size:26px;color:var(--primary-2)}
@@ -38,7 +38,7 @@ fieldset{border:1px solid rgba(16,49,42,.14);border-radius:14px;padding:12px;mar
 .error{color:var(--danger);margin-top:8px;font-weight:600}
 .empty{color:var(--muted);padding:12px;text-align:center}
 .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
-.filters.sticky{position:sticky;top:56px;z-index:2;background:linear-gradient(180deg,var(--bg) 0%,rgba(246,241,230,.92) 100%);padding:10px 0}
+.filters.sticky{position:sticky;top:120px;z-index:2;background:linear-gradient(180deg,var(--bg) 0%,rgba(246,241,230,.92) 100%);padding:10px 0}
 
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:74px;background:rgba(16,49,42,.92);border:1px solid rgba(255,255,255,.14);color:#fff;padding:10px 14px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
 .hidden{display:none}
