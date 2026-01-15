@@ -7,7 +7,7 @@ const LS_OWNER_VERIF = 'sportride_owner_verif_v1';
 const LS_DEVICE_ID = 'sportride_device_id_v1';
 
 const Store = {
-  event: window.DemoData?.event || { id: 1, name: 'Évènement', city: '', date: new Date().toISOString() },
+  event: window.DemoData?.event || null,
   deviceId: null,
   cache: {
     rides: [],
@@ -24,7 +24,7 @@ const Store = {
     this.deviceId = id;
     return id;
   },
-  singleEvent(){ return this.event; },
+  singleEvent(){ return this.event || { id: 1, name: 'Évènement', city: '', date: new Date().toISOString() }; },
 };
 
 const API_BASE = '/api';
@@ -43,6 +43,11 @@ async function apiFetch(path, { method='GET', body=null } = {}){
 }
 
 const API = {
+  async getEvent(id){
+    const qs = id ? `?id=${encodeURIComponent(String(id))}` : '';
+    const data = await apiFetch(`/event_get.php${qs}`);
+    return data.event;
+  },
   async listRides(eventId){
     const qs = eventId ? `?event_id=${encodeURIComponent(String(eventId))}` : '';
     const data = await apiFetch(`/rides_list.php${qs}`);
@@ -77,6 +82,15 @@ async function loadRides(){
   const rides = await API.listRides(Store.singleEvent()?.id || 1);
   Store.cache.rides = rides;
   return rides;
+}
+
+async function loadEvent(){
+  try {
+    const ev = await API.getEvent();
+    if (ev && ev.id) Store.event = ev;
+  } catch {
+    // keep DemoData fallback
+  }
 }
 function getRide(id){
   return Store.cache.rides.find(r=> String(r.id)===String(id));
@@ -447,4 +461,8 @@ async function renderRequests(){ const frag=$('#tpl-requests').content.cloneNode
 // Bootstrap
 function setActiveFromHash(){ const base=(location.hash||'#home').split('?')[0]; $$('.tab').forEach(t=> t.classList.toggle('active', t.getAttribute('href')===base)); }
 window.addEventListener('hashchange', setActiveFromHash);
-router().then(setActiveFromHash);
+(async ()=>{
+  await loadEvent();
+  await router();
+  setActiveFromHash();
+})();
