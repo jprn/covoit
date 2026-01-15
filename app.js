@@ -100,9 +100,15 @@ async function renderRide(params){ const id=params.get('id'); const r=Store.getR
   <div>Participation: ${r.price? r.price+' €':'Libre'}</div>
   <div>Conducteur: ${r.driver||'Invité'}</div>`;
   const modal=$('#req-modal',frag), btn=$('#btn-request',frag), form=$('#req-form',frag);
-  btn.addEventListener('click', ()=> modal.classList.remove('hidden'));
-  $('#req-cancel',frag).addEventListener('click', ()=> modal.classList.add('hidden'));
-  form.addEventListener('submit', (e)=>{ e.preventDefault(); const p=Object.fromEntries(new FormData(form).entries()); const me=Store.data.currentUser?.nickname||'Invité'; const seats=Number(p.seats||1); const req=Store.addRequest({ ride_id:r.id, passenger:me, seats, message:p.message||'' }); toast('Demande envoyée'); modal.classList.add('hidden');
+  const closeModal = ()=> modal.classList.add('hidden');
+  const openModal = ()=> modal.classList.remove('hidden');
+  btn.addEventListener('click', openModal);
+  $('#req-cancel',frag).addEventListener('click', closeModal);
+  // Close on backdrop click
+  modal.addEventListener('click', (e)=>{ if (e.target === modal) closeModal(); });
+  // Close on Escape key while modal is visible
+  frag.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && !modal.classList.contains('hidden')) closeModal(); });
+  form.addEventListener('submit', (e)=>{ e.preventDefault(); const p=Object.fromEntries(new FormData(form).entries()); const me=Store.data.currentUser?.nickname||'Invité'; const seats=Number(p.seats||1); const req=Store.addRequest({ ride_id:r.id, passenger:me, seats, message:p.message||'' }); toast('Demande envoyée'); closeModal();
     // auto-accept after 3s if enough seats (simple simulation)
     setTimeout(()=>{ const rr = Store.setRequestStatus(req.id, 'ACCEPTED'); if(rr){ toast('Demande acceptée'); } }, 3000);
   });
