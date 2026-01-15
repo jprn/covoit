@@ -250,7 +250,7 @@ async function renderRide(params){ const id=params.get('id'); const r=Store.getR
     const req=Store.addRequest({ ride_id:r.id, passenger:name, seats, message:(p.message||'')+ (phone? ` (tel: ${phone})`:'') }); toast('Demande envoyée'); closeModal();
     // auto-accept after 3s if enough seats (simple simulation) — disabled if PIN set and not verified
     const rideNow = Store.getRide(r.id);
-    const shouldAuto = !(rideNow?.owner_pin) || OwnerAuth.isVerified(r.id) || Store.isOwner(r.id);
+    const shouldAuto = !(rideNow?.owner_pin);
     if (shouldAuto) setTimeout(()=>{ const left = Store.seatsLeft(r.id); if (left >= req.seats) { const rr = Store.setRequestStatus(req.id, 'ACCEPTED'); if(rr){ toast('Demande acceptée'); } } else { Store.setRequestStatus(req.id, 'REFUSED'); toast('Demande refusée (plus de places)'); }
       // refresh details display
       const updated = Store.getRide(r.id); const boxNow = document.getElementById('ride-details'); if (boxNow && updated) { boxNow.innerHTML = `<h2>${updated.origin_text} → ${Store.singleEvent().name} (${Store.singleEvent().city})</h2>
