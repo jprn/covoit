@@ -396,6 +396,8 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   <div class="cta-row"><button id="btn-edit-ride" class="btn">Modifier</button><button id="btn-delete-ride" class="btn danger">Supprimer</button></div>`;
   const modal=$('#req-modal',frag), btn=$('#btn-request',frag), form=$('#req-form',frag);
   const editModal=$('#edit-modal',frag), editForm=$('#edit-form',frag);
+  const btnEdit = $('#btn-edit-ride', frag);
+  const btnDelete = $('#btn-delete-ride', frag);
   // Requests list on ride detail
   const reqSection = document.createElement('section');
   reqSection.innerHTML = `<h3>Demandes reçues</h3><ul id="ride-reqs-list" class="list">${buildReqListHTML(r.id)}</ul>`;
@@ -433,6 +435,70 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   modal.addEventListener('click', (e)=>{ if (e.target === modal) closeModal(); });
   // Close on Escape key while modal is visible
   frag.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && !modal.classList.contains('hidden')) closeModal(); });
+  // Edit modal handlers
+  const closeEdit = ()=> editModal.classList.add('hidden');
+  const openEdit = ()=>{
+    if (!editModal) return;
+    // Prefill fields from current ride r
+    if (editForm){
+      if (editForm.ride_type) editForm.ride_type.value = (r.ride_type||'go');
+      if (editForm.depart_at){
+        const dt = new Date(r.depart_at);
+        const isoLocal = new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
+        editForm.depart_at.value = isoLocal;
+      }
+      if (editForm.origin) editForm.origin.value = r.origin_text||'';
+      if (editForm.seats) editForm.seats.value = Number(r.seats_total||1);
+    }
+    editModal.classList.remove('hidden');
+  };
+  const editX = $('#edit-x', frag); if (editX) editX.addEventListener('click', closeEdit);
+  const editCancel = $('#edit-cancel', frag); if (editCancel) editCancel.addEventListener('click', closeEdit);
+  if (btnEdit) btnEdit.addEventListener('click', openEdit);
+  if (btnDelete) btnDelete.addEventListener('click', async ()=>{
+    if (!confirm('Supprimer ce trajet ? Cette action est irréversible.')) return;
+    const pin = prompt('Entrez le code PIN conducteur pour ce trajet');
+    if (!pin) return;
+    try{
+      await API.deleteRide({ ride_id: r.id, pin });
+      toast('Trajet supprimé');
+      await loadRides();
+      location.hash = '#event';
+    }catch(err){ toast(err.message||'Erreur'); }
+  });
+  if (editForm){ editForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(editForm); const p = Object.fromEntries(fd.entries());
+    // Basic validation
+    if (!p.depart_at || !p.origin || !p.seats){ toast('Champs manquants'); return; }
+    const payload = {
+      ride_id: r.id,
+      ride_type: p.ride_type,
+      depart_at: new Date(p.depart_at).toISOString(),
+      origin_text: p.origin,
+      seats_total: Number(p.seats||1),
+    };
+    const pin = prompt('Entrez le code PIN conducteur pour ce trajet');
+    if (!pin) return;
+    try{
+      await API.updateRide({ ...payload, pin });
+      toast('Trajet mis à jour');
+      closeEdit();
+      await loadRides();
+      // Refresh current ride display
+      const nr = getRide(r.id);
+      if (nr){
+        const leftNow2 = seatsLeftFrom(nr, cachedRequestsByRide(nr.id));
+        const boxNow = document.getElementById('ride-details');
+        if (boxNow){
+          boxNow.innerHTML = `<h2>${nr.origin_text} → ${Store.singleEvent().name} (${Store.singleEvent().city})</h2>
+  <div>${fmtDateTime(nr.depart_at)} • ${nr.ride_type.toUpperCase()}</div>
+  <div>Places restantes: ${leftNow2}/${nr.seats_total} ${leftNow2<=0? '<span class="badge full">Complet</span>':''}</div>
+  <div>Conducteur: ${nr.driver_name||nr.driver||'Invité'}</div>`;
+        }
+      }
+    }catch(err){ toast(err.message||'Erreur'); }
+  }); }
   // Owner actions in detail (with PIN)
   reqSection.addEventListener('click', (e)=>{
     const accept = e.target.closest('.btn-accept-req');
