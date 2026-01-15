@@ -2,137 +2,84 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0ea5e9" />
-  <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
-  <meta name="description" content="SportRide – Covoiturage simple pour ton évènement" />
-  <title>SportRide – Covoiturage simple pour ton évènement</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SportRide – Covoiturage Évènement</title>
   <link rel="stylesheet" href="/styles.css" />
+  <link rel="manifest" href="/manifest.webmanifest" />
 </head>
 <body>
   <div id="app"></div>
 
   <template id="tpl-layout">
     <header class="topbar">
-      <div class="brand">
-        <img src="/assets/icon.svg" alt="SportRide" class="logo" />
-        <div>
-          <div class="name">SportRide</div>
-          <div class="tag">Covoiturage simple pour ton évènement</div>
-        </div>
-      </div>
-      <nav class="actions">
-        <button data-link="#/create" class="btn primary">Proposer</button>
-        <button data-link="#/rides" class="btn">Trouver</button>
-      </nav>
+      <h1>SportRide</h1>
     </header>
-
-    <main class="page" id="page"></main>
-
+    <main id="page" class="page"></main>
     <nav class="tabbar">
-      <a href="#/" class="tab" data-tab="home">Accueil</a>
-      <a href="#/events" class="tab" data-tab="events">Évènements</a>
-      <a href="#/rides" class="tab" data-tab="rides">Trajets</a>
-      <a href="#/notifications" class="tab" data-tab="notifications">Notif</a>
-      <a href="#/profile" class="tab" data-tab="profile">Profil</a>
+      <a class="tab" data-tab="home" href="#home">Accueil</a>
+      <a class="tab" data-tab="event" href="#event">Évènement</a>
+      <a class="tab" data-tab="offer" href="#offer">Proposer</a>
+      <a class="tab" data-tab="search" href="#search">Rechercher</a>
+      <a class="tab" data-tab="requests" href="#requests">Mes demandes</a>
+      <a class="tab" data-tab="profile" href="#profile">Profil</a>
     </nav>
     <div id="toast" class="toast hidden"></div>
   </template>
 
-  <!-- Pages templates -->
   <template id="tpl-home">
     <section class="hero">
-      <h1>Trouve un covoit pour ton évènement</h1>
-      <p>Rejoins une course en toute simplicité. 3 clics suffisent.</p>
-      <div class="searchbar">
-        <input id="home-search" type="search" placeholder="Rechercher un évènement (ville, nom)" />
-        <button class="btn primary" data-link="#/events">Chercher</button>
-      </div>
+      <h2>Bienvenue</h2>
+      <p>Covoiturez pour votre évènement sportif.
+      </p>
       <div class="cta-row">
-        <a class="btn primary block" href="#/create">Proposer un trajet</a>
-        <a class="btn ghost block" href="#/rides">Trouver un trajet</a>
+        <a class="btn primary" href="#event">Voir l'évènement</a>
+        <a class="btn" href="#offer">Proposer un trajet</a>
       </div>
-    </section>
-  </template>
-
-  <template id="tpl-events">
-    <section>
-      <h2>Évènements</h2>
-      <div class="filters sticky">
-        <input id="event-q" type="search" placeholder="Ville, nom..." />
-      </div>
-      <ul id="event-list" class="cards"></ul>
-      <div id="event-empty" class="empty hidden">Aucun évènement. Soyez le premier à proposer un trajet.</div>
     </section>
   </template>
 
   <template id="tpl-event">
     <section>
-      <div id="event-header" class="card"></div>
+      <div id="event-card" class="card"></div>
       <div class="cta-row">
-        <a class="btn primary block" id="btn-create-from-event">Proposer un trajet</a>
-        <a class="btn block" id="btn-find-from-event">Trouver un trajet</a>
+        <a class="btn primary block" href="#offer">Proposer un trajet</a>
+        <a class="btn block" href="#search">Trouver un trajet</a>
       </div>
-      <h3>Trajets disponibles</h3>
-      <div class="filters sticky">
-        <input id="ride-city" type="search" placeholder="Ville/CP de départ" />
-        <select id="ride-type">
-          <option value="any">Aller/Retour</option>
+      <h3>Trajets à venir</h3>
+      <div class="filters">
+        <select id="ev-filter-type">
+          <option value="any">Tous</option>
           <option value="go">Aller</option>
           <option value="return">Retour</option>
         </select>
       </div>
-      <ul id="ride-list" class="cards"></ul>
-      <div id="ride-empty" class="empty hidden">Pas encore de trajet pour cet évènement.</div>
+      <ul id="ev-rides" class="list"></ul>
+      <div id="ev-empty" class="empty hidden">Aucun trajet pour le moment.</div>
     </section>
   </template>
 
-  <template id="tpl-auth">
-    <section>
-      <h2>Connexion / Inscription</h2>
-      <form id="auth-form" class="form">
-        <label>Email<input type="email" name="email" required /></label>
-        <label>Mot de passe<input type="password" name="password" minlength="6" required /></label>
-        <button class="btn primary" type="submit">Continuer</button>
-      </form>
-      <div id="auth-error" class="error"></div>
-    </section>
-  </template>
-
-  <template id="tpl-profile">
-    <section>
-      <h2>Profil</h2>
-      <div id="profile-info" class="card"></div>
-      <form id="profile-form" class="form">
-        <label>Prénom<input type="text" name="first_name" /></label>
-        <label>Nom<input type="text" name="last_name" /></label>
-        <label>Téléphone<input type="tel" name="phone" /></label>
-        <label>Ville<input type="text" name="city" /></label>
-        <button class="btn primary" type="submit">Enregistrer</button>
-      </form>
-      <button id="btn-logout" class="btn danger">Se déconnecter</button>
-    </section>
-  </template>
-
-  <template id="tpl-create">
+  <template id="tpl-offer">
     <section>
       <h2>Proposer un trajet</h2>
-      <form id="ride-form" class="form" novalidate>
+      <form class="form" id="offer-form" novalidate>
         <label>Type
           <select name="ride_type" required>
             <option value="go">Aller</option>
             <option value="return">Retour</option>
-            <option value="roundtrip">Aller-Retour</option>
           </select>
         </label>
-        <label>Date et heure de départ<input type="datetime-local" name="depart_at" required /></label>
-        <label>Point de départ<input type="text" name="origin" placeholder="Adresse + ville" required /></label>
-        <button type="button" id="btn-geoloc" class="btn small">Utiliser ma position</button>
-        <label>Nombre de places<input type="number" name="seats" min="1" max="8" required value="3" /></label>
-        <label>Détour max (km)<input type="number" name="max_detour_km" min="0" max="200" value="10" /></label>
-        <label>Participation (EUR, option)<input type="number" name="price_suggested" min="0" step="1" value="0" /></label>
-        <label>Commentaire<textarea name="note" rows="3" placeholder="Je passe par..."></textarea></label>
+        <label>Date et heure de départ
+          <input type="datetime-local" name="depart_at" required />
+        </label>
+        <label>Point de départ
+          <input type="text" name="origin" placeholder="Adresse + ville" required />
+        </label>
+        <label>Places totales
+          <input type="number" name="seats" min="1" max="8" required value="3" />
+        </label>
+        <label>Participation (EUR)
+          <input type="number" name="price" min="0" step="1" value="0" />
+        </label>
         <fieldset>
           <legend>Règles</legend>
           <label><input type="checkbox" name="luggage" /> Bagages OK</label>
@@ -142,72 +89,89 @@
         </fieldset>
         <fieldset>
           <legend>Vos coordonnées</legend>
-          <label>Nom<input type="text" name="last_name" required placeholder="Votre nom" /></label>
-          <label>Prénom<input type="text" name="first_name" required placeholder="Votre prénom" /></label>
-          <label>Email<input type="email" name="email" required placeholder="vous@email.com" /></label>
-          <label>Téléphone<input type="tel" name="phone" required placeholder="+33..." /></label>
+          <label>Pseudo<input type="text" name="nickname" required /></label>
+          <label>Téléphone<input type="tel" name="phone" required /></label>
         </fieldset>
+        <div id="offer-error" class="error"></div>
         <button class="btn primary" type="submit">Publier</button>
       </form>
-      <div id="ride-error" class="error"></div>
     </section>
   </template>
 
-  <template id="tpl-rides">
+  <template id="tpl-search">
     <section>
-      <h2>Trajets</h2>
+      <h2>Rechercher un trajet</h2>
       <div class="filters sticky">
-        <input id="filter-city" type="search" placeholder="Ville/CP (départ)" />
-        <input id="filter-radius" type="number" min="1" max="200" value="25" />
-        <input id="filter-time" type="time" />
-        <select id="filter-type">
-          <option value="any">Aller/Retour</option>
+        <select id="search-type">
+          <option value="any">Tous</option>
           <option value="go">Aller</option>
           <option value="return">Retour</option>
         </select>
-        <select id="filter-sort">
-          <option value="relevance">Pertinence</option>
+        <input id="search-city" type="search" placeholder="Ville de départ (contient)" />
+        <input id="search-time" type="time" />
+        <input id="search-seats" type="number" min="1" max="8" placeholder="Places min" />
+        <input id="search-cost" type="number" min="0" placeholder="Coût max" />
+        <select id="search-sort">
           <option value="earliest">Plus tôt</option>
-          <option value="closest">Plus proche</option>
+          <option value="seats">Places</option>
+          <option value="cost">Coût</option>
         </select>
       </div>
-      <ul id="rides-list" class="cards"></ul>
-      <div id="rides-empty" class="empty hidden">Aucun trajet. Soyez le premier à proposer un trajet.</div>
+      <ul id="search-list" class="list"></ul>
+      <div id="search-empty" class="empty hidden">Aucun trajet ne correspond. <a href="#offer">Proposer un trajet</a></div>
     </section>
   </template>
 
   <template id="tpl-ride">
     <section>
       <div id="ride-details" class="card"></div>
-      <form id="book-form" class="form">
-        <label>Nombre de places
-          <input type="number" name="count" min="1" value="1" />
-        </label>
-        <label>Message (optionnel)
-          <textarea name="message" rows="3" placeholder="Bonjour, je souhaite rejoindre..."></textarea>
-        </label>
-        <button class="btn primary" type="submit">Demander à rejoindre</button>
-      </form>
-      <div id="book-error" class="error"></div>
+      <button id="btn-request" class="btn primary block">Demander à rejoindre</button>
+      <div id="req-modal" class="modal hidden">
+        <div class="modal-content">
+          <h3>Demande de place</h3>
+          <form id="req-form" class="form">
+            <label>Places
+              <input type="number" name="seats" min="1" max="8" value="1" required />
+            </label>
+            <label>Message
+              <textarea name="message" rows="3" placeholder="Votre message"></textarea>
+            </label>
+            <div class="cta-row">
+              <button class="btn" type="button" id="req-cancel">Annuler</button>
+              <button class="btn primary" type="submit">Envoyer</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </section>
   </template>
 
-  <template id="tpl-messages">
+  <template id="tpl-requests">
     <section>
-      <h2>Messages</h2>
-      <div id="thread" class="chat"></div>
-      <form id="chat-form" class="chat-form">
-        <input type="text" name="text" placeholder="Écrire un message" required />
-        <button class="btn primary" type="submit">Envoyer</button>
-      </form>
+      <h2>Mes demandes</h2>
+      <ul id="req-list" class="list"></ul>
+      <div id="req-empty" class="empty hidden">Aucune demande pour l'instant.</div>
     </section>
   </template>
 
-  <template id="tpl-notifications">
+  <template id="tpl-profile">
     <section>
-      <h2>Notifications</h2>
-      <ul id="notif-list" class="list"></ul>
-      <div id="notif-empty" class="empty hidden">Aucune notification</div>
+      <h2>Mon profil</h2>
+      <form id="profile-form" class="form">
+        <label>Pseudo<input type="text" name="nickname" required /></label>
+        <label>Téléphone<input type="tel" name="phone" /></label>
+        <fieldset>
+          <legend>Préférences</legend>
+          <label><input type="checkbox" name="pref_music" /> Musique</label>
+          <label><input type="checkbox" name="pref_smoking" /> Fumeur</label>
+          <label><input type="checkbox" name="pref_pets" /> Animaux</label>
+          <label><input type="checkbox" name="pref_talk" /> Discussion</label>
+        </fieldset>
+        <div class="cta-row">
+          <button class="btn primary" type="submit">Enregistrer</button>
+          <button class="btn danger" id="btn-reset" type="button">Réinitialiser données</button>
+        </div>
+      </form>
     </section>
   </template>
 
