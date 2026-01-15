@@ -75,7 +75,7 @@ function refreshReqCounters(rideId){
 function buildReqListHTML(rideId){ const items = Store.requestsByRide(rideId); if (!items.length) return '<li class="card">Aucune demande</li>'; const me=Store.data.currentUser?.nickname||'Invité'; const owner=Store.isOwner(rideId);
   return items.map(x=>{ const mine = x.passenger===me; const badge = x.status==='PENDING'?'badge pending': x.status==='ACCEPTED'?'badge accepted':'badge refused';
     const cancelBtn = (mine && x.status==='PENDING')? `<button type=\"button\" class=\"btn small btn-cancel-req\" data-req=\"${x.id}\">Annuler</button>`: '';
-    const ownerBtns = (owner && x.status==='PENDING')? `<button type=\"button\" class=\"btn small primary btn-accept-req\" data-req=\"${x.id}\">Accepter</button> <button type=\"button\" class=\"btn small danger btn-refuse-req\" data-req=\"${x.id}\">Refuser</button>`: '';
+    const ownerBtns = (x.status==='PENDING')? `<button type=\"button\" class=\"btn small primary btn-accept-req\" data-req=\"${x.id}\">Accepter</button> <button type=\"button\" class=\"btn small danger btn-refuse-req\" data-req=\"${x.id}\">Refuser</button>`: '';
     return `<li class=\"card\"><div><strong>${x.passenger}</strong> • ${x.seats} place(s) <span class=\"${badge}\" style=\"margin-left:8px\">${x.status}</span></div><div class=\"muted\">${x.message||''}</div><div class=\"cta-row\">${ownerBtns} ${cancelBtn}</div></li>`; }).join(''); }
 
 // Router
