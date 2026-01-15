@@ -104,6 +104,7 @@ async function renderRide(params){ const id=params.get('id'); const r=Store.getR
   const openModal = ()=> modal.classList.remove('hidden');
   btn.addEventListener('click', openModal);
   $('#req-cancel',frag).addEventListener('click', closeModal);
+  const xbtn = $('#req-x',frag); if (xbtn) xbtn.addEventListener('click', closeModal);
   // Close on backdrop click
   modal.addEventListener('click', (e)=>{ if (e.target === modal) closeModal(); });
   // Close on Escape key while modal is visible
