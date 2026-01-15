@@ -34,6 +34,66 @@ async function apiFetch(path, { method='GET', body=null } = {}){
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
+  // Edit/Delete wiring with PIN
+  const btnEdit = $('#btn-edit-ride', frag);
+  const btnDelete = $('#btn-delete-ride', frag);
+  const closeEdit = ()=> editModal.classList.add('hidden');
+  const openEdit = ()=> {
+    // prefill
+    if (editForm.ride_type) editForm.ride_type.value = (r.ride_type||'go');
+    if (editForm.depart_at) {
+      const dt = new Date(r.depart_at); const iso = new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
+      editForm.depart_at.value = iso;
+    }
+    if (editForm.origin) editForm.origin.value = r.origin_text||'';
+    if (editForm.seats) editForm.seats.value = Number(r.seats_total||1);
+    editModal.classList.remove('hidden');
+  };
+  if ($('#edit-x',frag)) $('#edit-x',frag).addEventListener('click', closeEdit);
+  if ($('#edit-cancel',frag)) $('#edit-cancel',frag).addEventListener('click', closeEdit);
+  if (btnEdit) btnEdit.addEventListener('click', openEdit);
+  if (btnDelete) btnDelete.addEventListener('click', async ()=>{
+    if (!confirm('Supprimer ce trajet ? Cette action est irréversible.')) return;
+    const pin = prompt('Entrez le code PIN conducteur pour ce trajet');
+    if (!pin) return;
+    try{
+      await API.deleteRide({ ride_id: r.id, pin });
+      toast('Trajet supprimé');
+      await loadRides();
+      location.hash = '#event';
+    }catch(err){ toast(err.message||'Erreur'); }
+  });
+  if (editForm){ editForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(editForm); const p = Object.fromEntries(fd.entries());
+    const payload = {
+      ride_id: r.id,
+      ride_type: p.ride_type,
+      depart_at: new Date(p.depart_at).toISOString(),
+      origin_text: p.origin,
+      seats_total: Number(p.seats||1),
+    };
+    const pin = prompt('Entrez le code PIN conducteur pour ce trajet');
+    if (!pin) return;
+    try{
+      await API.updateRide({ ...payload, pin });
+      toast('Trajet mis à jour');
+      closeEdit();
+      await loadRides();
+      const nr = getRide(r.id);
+      if (nr){
+        const leftNow2 = seatsLeftFrom(nr, cachedRequestsByRide(nr.id));
+        const boxNow = document.getElementById('ride-details');
+        if (boxNow){
+          boxNow.innerHTML = `<h2>${nr.origin_text} → ${Store.singleEvent().name} (${Store.singleEvent().city})</h2>
+  <div>${fmtDateTime(nr.depart_at)} • ${nr.ride_type.toUpperCase()}</div>
+  <div>Places restantes: ${leftNow2}/${nr.seats_total} ${leftNow2<=0? '<span class="badge full">Complet</span>':''}</div>
+  <div>Conducteur: ${nr.driver_name||nr.driver||'Invité'}</div>
+  <div class=\"cta-row\"><button id=\"btn-edit-ride\" class=\"btn\">Modifier</button><button id=\"btn-delete-ride\" class=\"btn danger\">Supprimer</button></div>`;
+        }
+      }
+    }catch(err){ toast(err.message||'Erreur'); }
+  }); }
   const data = await res.json().catch(()=> ({}));
   if (!res.ok){
     const msg = data?.error || `HTTP ${res.status}`;
@@ -75,6 +135,12 @@ const API = {
   },
   async refuseRequest(payload){
     return apiFetch('/requests_refuse.php', { method:'POST', body: payload });
+  },
+  async updateRide(payload){
+    return apiFetch('/rides_update.php', { method:'POST', body: payload });
+  },
+  async deleteRide(payload){
+    return apiFetch('/rides_delete.php', { method:'POST', body: payload });
   },
 };
 
@@ -166,6 +232,14 @@ function mountLayout(){ const root=$('#app'); root.innerHTML=''; root.append($('
 async function router(){ mountLayout(); const h=location.hash||'#home'; const [base, query]=h.split('?'); const params=new URLSearchParams(query||''); const view=routes[base]||renderHome; await view(params); setActive(base); }
 function setActive(base){ $$('.tab').forEach(t=> t.classList.toggle('active', t.getAttribute('href')===base)); }
 window.addEventListener('hashchange', router);
+
+// Burger nav toggle
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('#nav-toggle');
+  if (btn){ const open = !document.body.classList.contains('nav-open'); document.body.classList.toggle('nav-open', open); btn.setAttribute('aria-expanded', String(open)); }
+  const tab = e.target.closest('.tab');
+  if (tab){ document.body.classList.remove('nav-open'); const b=$('#nav-toggle'); if(b) b.setAttribute('aria-expanded','false'); }
+});
 
 // Components
 function rideCard(r){ const reqs = cachedRequestsByRide(r.id); const pCount = reqs.filter(x=>x.status==='PENDING').length; const aCount = reqs.filter(x=>x.status==='ACCEPTED').length; const left = seatsLeftFrom(r, reqs); const full = left<=0; return `<li class="card" data-ride="${r.id}">
@@ -343,8 +417,10 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   box.innerHTML = `<h2>${r.origin_text} → ${Store.singleEvent().name} (${Store.singleEvent().city})</h2>
   <div>${fmtDateTime(r.depart_at)} • ${r.ride_type.toUpperCase()}</div>
   <div>Places restantes: ${leftNow}/${r.seats_total} ${leftNow<=0? '<span class="badge full">Complet</span>':''}</div>
-  <div>Conducteur: ${r.driver_name||r.driver||'Invité'}</div>`;
+  <div>Conducteur: ${r.driver_name||r.driver||'Invité'}</div>
+  <div class="cta-row"><button id="btn-edit-ride" class="btn">Modifier</button><button id="btn-delete-ride" class="btn danger">Supprimer</button></div>`;
   const modal=$('#req-modal',frag), btn=$('#btn-request',frag), form=$('#req-form',frag);
+  const editModal=$('#edit-modal',frag), editForm=$('#edit-form',frag);
   // Requests list on ride detail
   const reqSection = document.createElement('section');
   reqSection.innerHTML = `<h3>Demandes reçues</h3><ul id="ride-reqs-list" class="list">${buildReqListHTML(r.id)}</ul>`;

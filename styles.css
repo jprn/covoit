@@ -6,9 +6,16 @@
 .brand-logo{width:54px;height:54px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.65);border:1px solid rgba(16,49,42,.12);box-shadow:0 10px 20px rgba(16,49,42,.06)}
 .brand-text{display:flex;flex-direction:column;gap:2px}
 .topbar h1{margin:0;font-size:18px;letter-spacing:.25px;color:var(--primary-2);line-height:1.1}
+.burger{margin-left:auto;display:none;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;border:1px solid rgba(16,49,42,.14);background:#fff;color:var(--primary-2);font-size:20px;cursor:pointer}
 .tabbar{position:sticky;top:60px;z-index:3;background:linear-gradient(180deg,#f6f1e6 0%,rgba(246,241,230,.92) 100%);backdrop-filter:saturate(140%) blur(6px);display:flex;gap:8px;justify-content:flex-start;padding:8px 16px;border-bottom:1px solid var(--border)}
 .tab{color:var(--primary-2);text-decoration:none;padding:10px 12px;border-radius:10px;font-weight:700;font-size:14px;line-height:1;background:transparent}
 .tab.active{background:#fff;color:var(--primary-2);box-shadow:inset 0 -3px 0 var(--accent);}
+
+@media (max-width: 760px){
+  .burger{display:inline-flex}
+  .tabbar{position:fixed;top:60px;left:0;right:0;display:none;flex-direction:column;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#f6f1e6 0%,rgba(246,241,230,.98) 100%)}
+  body.nav-open .tabbar{display:flex}
+}
 
 h1,h2,h3{margin:10px 0}
 h2{font-size:26px;color:var(--primary-2)}

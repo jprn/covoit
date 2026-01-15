@@ -22,9 +22,10 @@
         <div class="brand-text">
           <h1>SportRide</h1>
         </div>
+        <button id="nav-toggle" class="burger" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="tabbar">☰</button>
       </div>
     </header>
-    <nav class="tabbar">
+    <nav id="tabbar" class="tabbar">
       <a class="tab" data-tab="home" href="#home">Accueil</a>
       <a class="tab" data-tab="event" href="#event">Évènement</a>
       <a class="tab" data-tab="offer" href="#offer">Proposer</a>
@@ -151,6 +152,33 @@
             <div class="cta-row">
               <button class="btn" type="button" id="req-cancel">Annuler</button>
               <button class="btn primary" type="submit">Envoyer</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div id="edit-modal" class="modal hidden">
+        <div class="modal-content">
+          <button type="button" id="edit-x" class="icon-close" aria-label="Fermer">×</button>
+          <h3>Modifier le trajet</h3>
+          <form id="edit-form" class="form">
+            <label>Type
+              <select name="ride_type" required>
+                <option value="go">Aller</option>
+                <option value="return">Retour</option>
+              </select>
+            </label>
+            <label>Date et heure de départ
+              <input type="datetime-local" name="depart_at" required />
+            </label>
+            <label>Point de départ
+              <input type="text" name="origin" placeholder="Adresse + ville" required />
+            </label>
+            <label>Places totales
+              <input type="number" name="seats" min="1" max="8" required />
+            </label>
+            <div class="cta-row">
+              <button class="btn" type="button" id="edit-cancel">Annuler</button>
+              <button class="btn primary" type="submit">Enregistrer</button>
             </div>
           </form>
         </div>
