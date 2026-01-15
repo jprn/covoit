@@ -32,6 +32,7 @@ const Store = {
   listMyRequests(){ const me=this.data.currentUser?.nickname||'Invité'; return this.data.requests.filter(r=>r.passenger===me).sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)); },
   setRequestStatus(id, status){ const r=this.data.requests.find(x=>x.id===id); if(r){ r.status=status; this.save(); } return r; },
   addMessage({request_id, sender, text}){ const id=this.data.next.message++; const m={ id, request_id, sender, text, created_at:new Date().toISOString() }; this.data.messages.push(m); this.save(); return m; },
+  requestsByRide(rideId){ return this.data.requests.filter(r=> r.ride_id===rideId); },
   seatsLeft(rideId){
     const ride = this.getRide(rideId);
     if (!ride) return 0;
@@ -44,6 +45,24 @@ Store.load();
 
 function fmtDateTime(iso){ const d=new Date(iso); return d.toLocaleString(); }
 function toast(msg){ const t=$('#toast'); if(!t){ alert(msg); return; } t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),2000); }
+
+// Helpers for requests display/counters
+function reqCounts(rideId){ const items = Store.requestsByRide(rideId); return { pending: items.filter(x=>x.status==='PENDING').length, accepted: items.filter(x=>x.status==='ACCEPTED').length }; }
+function refreshReqCounters(rideId){
+  document.querySelectorAll(`.btn-reqs[data-ride="${rideId}"]`).forEach(btn=>{
+    const c=reqCounts(rideId);
+    btn.textContent = `Demandes (P:${c.pending} / A:${c.accepted})`;
+  });
+  const pend = document.getElementById(`pend-${rideId}`);
+  if (pend){
+    const c = reqCounts(rideId);
+    if (c.pending>0){ pend.textContent = `${c.pending} nouvelles`; pend.classList.remove('hidden'); }
+    else { pend.classList.add('hidden'); pend.textContent=''; }
+  }
+}
+function buildReqListHTML(rideId){ const items = Store.requestsByRide(rideId); if (!items.length) return '<li class="card">Aucune demande</li>'; const me=Store.data.currentUser?.nickname||'Invité';
+  return items.map(x=>{ const mine = x.passenger===me; const badge = x.status==='PENDING'?'badge pending': x.status==='ACCEPTED'?'badge accepted':'badge refused'; const cancelBtn = (mine && x.status==='PENDING')? `<button type=\"button\" class=\"btn small btn-cancel-req\" data-req=\"${x.id}\">Annuler</button>`: '';
+    return `<li class=\"card\"><div><strong>${x.passenger}</strong> • ${x.seats} place(s) <span class=\"${badge}\" style=\"margin-left:8px\">${x.status}</span></div><div class=\"muted\">${x.message||''}</div><div class=\"cta-row\">${cancelBtn}</div></li>`; }).join(''); }
 
 // Router
 const routes = {
@@ -62,10 +81,13 @@ function setActive(base){ $$('.tab').forEach(t=> t.classList.toggle('active', t.
 window.addEventListener('hashchange', router);
 
 // Components
-function rideCard(r){ const left = Store.seatsLeft(r.id); const full = left<=0; return `<li class="card">
+function rideCard(r){ const left = Store.seatsLeft(r.id); const full = left<=0; const reqs = Store.requestsByRide(r.id); const pCount = reqs.filter(x=>x.status==='PENDING').length; const aCount = reqs.filter(x=>x.status==='ACCEPTED').length; return `<li class="card" data-ride="${r.id}">
   <div><strong>${r.origin_text}</strong> → ${Store.singleEvent().name} (${Store.singleEvent().city})</div>
-  <div>${fmtDateTime(r.depart_at)} • ${r.ride_type.toUpperCase()} • ${left}/${r.seats_total} places ${full? '<span class="badge full">Complet</span>':''}</div>
-  <div class="cta-row"><a class="btn primary block" href="#ride?id=${r.id}">Voir</a></div>
+  <div>${fmtDateTime(r.depart_at)} • ${r.ride_type.toUpperCase()} • ${left}/${r.seats_total} places ${full? '<span class="badge full">Complet</span>':''} <span id="pend-${r.id}" class="badge pending ${pCount>0? '' : 'hidden'}">${pCount>0? `${pCount} nouvelles` : ''}</span></div>
+  <div class="cta-row">${full? '<span class="badge full">Complet</span>' : `<a class="btn primary" href="#ride?id=${r.id}">Voir</a>
+    <button type="button" class="btn btn-reqs" data-ride="${r.id}">Demandes (P:${pCount} / A:${aCount})</button>`}
+  </div>
+  <ul id="reqs-${r.id}" class="list hidden"></ul>
 </li>`; }
 
 // Views
@@ -75,6 +97,17 @@ async function renderEvent(){ const ev=Store.singleEvent(); const frag=$('#tpl-e
   card.innerHTML = `<h2>${ev.name}</h2><div>${ev.city} • ${new Date(ev.date).toLocaleDateString()} • ${ev.time_hint||''}</div><p>${ev.desc||''}</p>`;
   const list=$('#ev-rides',frag), empty=$('#ev-empty',frag), sel=$('#ev-filter-type',frag);
   function render(){ const rides=Store.listRides({type:sel.value}); list.innerHTML=''; empty.classList.toggle('hidden', rides.length>0); rides.forEach(r=>{ list.insertAdjacentHTML('beforeend', rideCard(r)); }); }
+  // Delegated interactions: toggle requests list and cancel
+  list.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.btn-reqs');
+    if (btn){ const rid=Number(btn.getAttribute('data-ride')); const ul=document.getElementById(`reqs-${rid}`); if(!ul) return; if(!ul.classList.contains('hidden')){ ul.classList.add('hidden'); ul.innerHTML=''; return; } ul.innerHTML = buildReqListHTML(rid); ul.classList.remove('hidden'); return; }
+    const cancel = e.target.closest('.btn-cancel-req');
+    if (cancel){ const id = Number(cancel.getAttribute('data-req')); const req = Store.setRequestStatus(id, 'CANCELLED'); if(req){ toast('Demande annulée'); }
+      // refresh the list and counters
+      const rideId = req?.ride_id; if (rideId){ refreshReqCounters(rideId); const ul=document.getElementById(`reqs-${rideId}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(rideId); }
+      }
+    }
+  });
   sel.addEventListener('change', render); render(); $('#page').append(frag); }
 
 async function renderOffer(){ const frag=$('#tpl-offer').content.cloneNode(true); const form=$('#offer-form',frag), err=$('#offer-error',frag);
@@ -96,6 +129,14 @@ async function renderSearch(){ const frag=$('#tpl-search').content.cloneNode(tru
     if(sort.value==='earliest') r.sort((a,b)=> new Date(a.depart_at)-new Date(b.depart_at)); if(sort.value==='seats') r.sort((a,b)=> (Store.seatsLeft(b.id))-(Store.seatsLeft(a.id))); if(sort.value==='cost') r.sort((a,b)=> (a.price||0)-(b.price||0));
     list.innerHTML=''; empty.classList.toggle('hidden', r.length>0); r.forEach(x=> list.insertAdjacentHTML('beforeend', rideCard(x)));
   }
+  // Delegation in search list as well
+  list.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.btn-reqs');
+    if (btn){ const rid=Number(btn.getAttribute('data-ride')); const ul=document.getElementById(`reqs-${rid}`); if(!ul) return; if(!ul.classList.contains('hidden')){ ul.classList.add('hidden'); ul.innerHTML=''; return; } ul.innerHTML = buildReqListHTML(rid); ul.classList.remove('hidden'); return; }
+    const cancel = e.target.closest('.btn-cancel-req');
+    if (cancel){ const id = Number(cancel.getAttribute('data-req')); const req = Store.setRequestStatus(id, 'CANCELLED'); if(req){ toast('Demande annulée'); } const rideId = req?.ride_id; if (rideId){ refreshReqCounters(rideId); const ul=document.getElementById(`reqs-${rideId}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(rideId); } }
+    }
+  });
   [sel,city,time,seats,cost,sort].forEach(el=> el.addEventListener('input', apply)); apply();
   $('#page').append(frag); }
 
@@ -107,6 +148,35 @@ async function renderRide(params){ const id=params.get('id'); const r=Store.getR
   <div>Places restantes: ${leftNow}/${r.seats_total} ${leftNow<=0? '<span class="badge full">Complet</span>':''}</div>
   <div>Conducteur: ${r.driver||'Invité'}</div>`;
   const modal=$('#req-modal',frag), btn=$('#btn-request',frag), form=$('#req-form',frag);
+  // Requests list on ride detail
+  const reqSection = document.createElement('section');
+  reqSection.innerHTML = `<h3>Demandes reçues</h3><ul id="ride-reqs-list" class="list">${buildReqListHTML(r.id)}</ul>`;
+  btn.insertAdjacentElement('afterend', reqSection);
+  // Allow cancelling own PENDING requests directly from detail page
+  reqSection.addEventListener('click', (e)=>{
+    const cancel = e.target.closest('.btn-cancel-req');
+    if (!cancel) return;
+    const rid = r.id;
+    const reqId = Number(cancel.getAttribute('data-req'));
+    const req = Store.setRequestStatus(reqId, 'CANCELLED');
+    if (req) {
+      toast('Demande annulée');
+      const ul = reqSection.querySelector('#ride-reqs-list');
+      if (ul) ul.innerHTML = buildReqListHTML(rid);
+      refreshReqCounters(rid);
+      // refresh seats and disable button if full
+      const updated = Store.getRide(rid);
+      const boxNow = document.getElementById('ride-details');
+      if (boxNow && updated) {
+        boxNow.innerHTML = `<h2>${updated.origin_text} → ${Store.singleEvent().name} (${Store.singleEvent().city})</h2>
+  <div>${fmtDateTime(updated.depart_at)} • ${updated.ride_type.toUpperCase()}</div>
+  <div>Places restantes: ${Store.seatsLeft(updated.id)}/${updated.seats_total} ${Store.seatsLeft(updated.id)<=0? '<span class="badge full">Complet</span>':''}</div>
+  <div>Conducteur: ${updated.driver||'Invité'}</div>`;
+      }
+      const leftAfter = Store.seatsLeft(rid);
+      if (leftAfter<=0) { btn.classList.add('disabled'); btn.setAttribute('disabled','disabled'); } else { btn.classList.remove('disabled'); btn.removeAttribute('disabled'); }
+    }
+  });
   const closeModal = ()=> modal.classList.add('hidden');
   const openModal = ()=> modal.classList.remove('hidden');
   if (leftNow<=0) { btn.classList.add('disabled'); btn.setAttribute('disabled','disabled'); }
@@ -117,7 +187,10 @@ async function renderRide(params){ const id=params.get('id'); const r=Store.getR
   modal.addEventListener('click', (e)=>{ if (e.target === modal) closeModal(); });
   // Close on Escape key while modal is visible
   frag.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && !modal.classList.contains('hidden')) closeModal(); });
-  form.addEventListener('submit', (e)=>{ e.preventDefault(); const p=Object.fromEntries(new FormData(form).entries()); const me=Store.data.currentUser?.nickname||'Invité'; const seats=Number(p.seats||1); const req=Store.addRequest({ ride_id:r.id, passenger:me, seats, message:p.message||'' }); toast('Demande envoyée'); closeModal();
+  form.addEventListener('submit', (e)=>{ e.preventDefault(); const p=Object.fromEntries(new FormData(form).entries()); const me=Store.data.currentUser?.nickname||'Invité'; const seats=Number(p.seats||1);
+    // Guard: prevent creating a request if not enough seats at submission time
+    if (Store.seatsLeft(r.id) < seats) { toast('Trajet complet ou places insuffisantes'); closeModal(); return; }
+    const req=Store.addRequest({ ride_id:r.id, passenger:me, seats, message:p.message||'' }); toast('Demande envoyée'); closeModal();
     // auto-accept after 3s if enough seats (simple simulation)
     setTimeout(()=>{ const left = Store.seatsLeft(r.id); if (left >= req.seats) { const rr = Store.setRequestStatus(req.id, 'ACCEPTED'); if(rr){ toast('Demande acceptée'); } } else { Store.setRequestStatus(req.id, 'REFUSED'); toast('Demande refusée (plus de places)'); }
       // refresh details display
@@ -125,15 +198,24 @@ async function renderRide(params){ const id=params.get('id'); const r=Store.getR
   <div>${fmtDateTime(updated.depart_at)} • ${updated.ride_type.toUpperCase()}</div>
   <div>Places restantes: ${Store.seatsLeft(updated.id)}/${updated.seats_total}</div>
   <div>Conducteur: ${updated.driver||'Invité'}</div>`; }
+      // refresh counters in lists
+      refreshReqCounters(r.id);
+      const ul = document.getElementById('ride-reqs-list'); if (ul) ul.innerHTML = buildReqListHTML(r.id);
+      // disable button if now full
+      const leftAfter = Store.seatsLeft(r.id);
+      if (leftAfter<=0) { btn.classList.add('disabled'); btn.setAttribute('disabled','disabled'); }
     }, 3000);
   });
   $('#page').append(frag); }
 
 async function renderRequests(){ const frag=$('#tpl-requests').content.cloneNode(true); const list=$('#req-list',frag), empty=$('#req-empty',frag);
-  const items = Store.listMyRequests(); list.innerHTML=''; empty.classList.toggle('hidden', items.length>0);
-  items.forEach(x=>{ const ride=Store.getRide(x.ride_id); const badge = x.status==='PENDING'?'badge pending': x.status==='ACCEPTED'?'badge accepted':'badge refused';
-    list.insertAdjacentHTML('beforeend', `<li class="card"><div><strong>${ride?.origin_text||'—'} → ${Store.singleEvent().name}</strong></div><div>${fmtDateTime(ride?.depart_at||x.created_at)} • <span class="${badge}">${x.status}</span></div><div>${x.seats} place(s) • ${x.message||''}</div></li>`);
-  });
+  function render(){ const items = Store.listMyRequests(); list.innerHTML=''; empty.classList.toggle('hidden', items.length>0);
+    items.forEach(x=>{ const ride=Store.getRide(x.ride_id); const badge = x.status==='PENDING'?'badge pending': x.status==='ACCEPTED'?'badge accepted':'badge refused'; const canCancel = x.status==='PENDING';
+      list.insertAdjacentHTML('beforeend', `<li class=\"card\"><div><strong>${ride?.origin_text||'—'} → ${Store.singleEvent().name}</strong></div><div>${fmtDateTime(ride?.depart_at||x.created_at)} • <span class=\"${badge}\">${x.status}</span></div><div>${x.seats} place(s) • ${x.message||''}</div>${canCancel? '<div class=\\"cta-row\\"><button type=\\"button\\" class=\\"btn danger btn-cancel-req\\" data-req=\\"'+x.id+'\\">Annuler</button></div>':''}</li>`);
+    });
+  }
+  list.addEventListener('click', (e)=>{ const btn=e.target.closest('.btn-cancel-req'); if (!btn) return; const id=Number(btn.getAttribute('data-req')); const req = Store.setRequestStatus(id, 'CANCELLED'); if(req){ toast('Demande annulée'); refreshReqCounters(req.ride_id); render(); }});
+  render();
   $('#page').append(frag); }
 
 async function renderProfile(){ const frag=$('#tpl-profile').content.cloneNode(true); const f=$('#profile-form',frag); const me=Store.data.currentUser||{}; f.nickname.value=me.nickname||''; f.phone.value=me.phone||'';
