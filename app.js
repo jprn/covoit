@@ -32,6 +32,13 @@ const Store = {
   listMyRequests(){ const me=this.data.currentUser?.nickname||'Invité'; return this.data.requests.filter(r=>r.passenger===me).sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)); },
   setRequestStatus(id, status){ const r=this.data.requests.find(x=>x.id===id); if(r){ r.status=status; this.save(); } return r; },
   addMessage({request_id, sender, text}){ const id=this.data.next.message++; const m={ id, request_id, sender, text, created_at:new Date().toISOString() }; this.data.messages.push(m); this.save(); return m; },
+  seatsLeft(rideId){
+    const ride = this.getRide(rideId);
+    if (!ride) return 0;
+    const booked = this.data.requests.filter(r=> r.ride_id===rideId && r.status==='ACCEPTED').reduce((s,r)=> s + (Number(r.seats)||0), 0);
+    const left = Math.max(0, Number(ride.seats_total||0) - booked);
+    return left;
+  }
 };
 Store.load();
 
@@ -55,9 +62,9 @@ function setActive(base){ $$('.tab').forEach(t=> t.classList.toggle('active', t.
 window.addEventListener('hashchange', router);
 
 // Components
-function rideCard(r){ const cost = r.price? `${r.price} €`:'Libre'; return `<li class="card">
+function rideCard(r){ const left = Store.seatsLeft(r.id); const full = left<=0; return `<li class="card">
   <div><strong>${r.origin_text}</strong> → ${Store.singleEvent().name} (${Store.singleEvent().city})</div>
-  <div>${fmtDateTime(r.depart_at)} • ${r.ride_type.toUpperCase()} • ${r.seats_total} places • ${cost}</div>
+  <div>${fmtDateTime(r.depart_at)} • ${r.ride_type.toUpperCase()} • ${left}/${r.seats_total} places ${full? '<span class="badge full">Complet</span>':''}</div>
   <div class="cta-row"><a class="btn primary block" href="#ride?id=${r.id}">Voir</a></div>
 </li>`; }
 
@@ -76,7 +83,7 @@ async function renderOffer(){ const frag=$('#tpl-offer').content.cloneNode(true)
     const required=[['ride_type','Type'],['depart_at','Date/heure'],['origin','Départ'],['seats','Places'],['nickname','Pseudo'],['phone','Téléphone']];
     for(const [k,label] of required){ if(!p[k]||String(p[k]).trim()===''){ err.textContent=`${label} est requis`; form.querySelector(`[name="${k}"]`).focus(); return; }}
     Store.data.currentUser={ ...me, nickname:p.nickname, phone:p.phone }; Store.save();
-    const payload={ event_id:Store.singleEvent().id, ride_type:p.ride_type, depart_at:new Date(p.depart_at).toISOString(), origin_text:p.origin, seats_total:Number(p.seats), price:Number(p.price||0), rules:{ luggage:!!p.luggage, music:!!p.music, smoking:!!p.smoking, pets:!!p.pets }, driver: Store.data.currentUser.nickname||'Invité' };
+    const payload={ event_id:Store.singleEvent().id, ride_type:p.ride_type, depart_at:new Date(p.depart_at).toISOString(), origin_text:p.origin, seats_total:Number(p.seats), driver: Store.data.currentUser.nickname||'Invité' };
     const ride=Store.addRide(payload); toast('Trajet publié'); location.hash = `#ride?id=${ride.id}`;
   });
   $('#page').append(frag); }
@@ -85,8 +92,8 @@ async function renderSearch(){ const frag=$('#tpl-search').content.cloneNode(tru
   const sel=$('#search-type',frag), city=$('#search-city',frag), time=$('#search-time',frag), seats=$('#search-seats',frag), cost=$('#search-cost',frag), sort=$('#search-sort',frag);
   function apply(){ let r=Store.listRides({type:sel.value}); if(city.value) r=r.filter(x=> x.origin_text.toLowerCase().includes(city.value.toLowerCase()));
     if(time.value){ const [hh,mm]=time.value.split(':').map(Number); r=r.filter(x=>{ const d=new Date(x.depart_at); const t=d.getHours()*60+d.getMinutes(); const target=hh*60+mm; return Math.abs(t-target)<=60; }); }
-    if(seats.value) r=r.filter(x=> x.seats_total>=Number(seats.value)); if(cost.value) r=r.filter(x=> Number(x.price||0)<=Number(cost.value));
-    if(sort.value==='earliest') r.sort((a,b)=> new Date(a.depart_at)-new Date(b.depart_at)); if(sort.value==='seats') r.sort((a,b)=> (b.seats_total)-(a.seats_total)); if(sort.value==='cost') r.sort((a,b)=> (a.price||0)-(b.price||0));
+    if(seats.value) r=r.filter(x=> Store.seatsLeft(x.id)>=Number(seats.value));
+    if(sort.value==='earliest') r.sort((a,b)=> new Date(a.depart_at)-new Date(b.depart_at)); if(sort.value==='seats') r.sort((a,b)=> (Store.seatsLeft(b.id))-(Store.seatsLeft(a.id))); if(sort.value==='cost') r.sort((a,b)=> (a.price||0)-(b.price||0));
     list.innerHTML=''; empty.classList.toggle('hidden', r.length>0); r.forEach(x=> list.insertAdjacentHTML('beforeend', rideCard(x)));
   }
   [sel,city,time,seats,cost,sort].forEach(el=> el.addEventListener('input', apply)); apply();
@@ -94,15 +101,16 @@ async function renderSearch(){ const frag=$('#tpl-search').content.cloneNode(tru
 
 async function renderRide(params){ const id=params.get('id'); const r=Store.getRide(id); const frag=$('#tpl-ride').content.cloneNode(true); const box=$('#ride-details',frag);
   if(!r){ box.textContent='Trajet introuvable'; $('#page').append(frag); return; }
+  const leftNow = Store.seatsLeft(r.id);
   box.innerHTML = `<h2>${r.origin_text} → ${Store.singleEvent().name} (${Store.singleEvent().city})</h2>
   <div>${fmtDateTime(r.depart_at)} • ${r.ride_type.toUpperCase()}</div>
-  <div>Places totales: ${r.seats_total}</div>
-  <div>Participation: ${r.price? r.price+' €':'Libre'}</div>
+  <div>Places restantes: ${leftNow}/${r.seats_total} ${leftNow<=0? '<span class="badge full">Complet</span>':''}</div>
   <div>Conducteur: ${r.driver||'Invité'}</div>`;
   const modal=$('#req-modal',frag), btn=$('#btn-request',frag), form=$('#req-form',frag);
   const closeModal = ()=> modal.classList.add('hidden');
   const openModal = ()=> modal.classList.remove('hidden');
-  btn.addEventListener('click', openModal);
+  if (leftNow<=0) { btn.classList.add('disabled'); btn.setAttribute('disabled','disabled'); }
+  else { btn.addEventListener('click', openModal); }
   $('#req-cancel',frag).addEventListener('click', closeModal);
   const xbtn = $('#req-x',frag); if (xbtn) xbtn.addEventListener('click', closeModal);
   // Close on backdrop click
@@ -111,7 +119,13 @@ async function renderRide(params){ const id=params.get('id'); const r=Store.getR
   frag.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && !modal.classList.contains('hidden')) closeModal(); });
   form.addEventListener('submit', (e)=>{ e.preventDefault(); const p=Object.fromEntries(new FormData(form).entries()); const me=Store.data.currentUser?.nickname||'Invité'; const seats=Number(p.seats||1); const req=Store.addRequest({ ride_id:r.id, passenger:me, seats, message:p.message||'' }); toast('Demande envoyée'); closeModal();
     // auto-accept after 3s if enough seats (simple simulation)
-    setTimeout(()=>{ const rr = Store.setRequestStatus(req.id, 'ACCEPTED'); if(rr){ toast('Demande acceptée'); } }, 3000);
+    setTimeout(()=>{ const left = Store.seatsLeft(r.id); if (left >= req.seats) { const rr = Store.setRequestStatus(req.id, 'ACCEPTED'); if(rr){ toast('Demande acceptée'); } } else { Store.setRequestStatus(req.id, 'REFUSED'); toast('Demande refusée (plus de places)'); }
+      // refresh details display
+      const updated = Store.getRide(r.id); const boxNow = document.getElementById('ride-details'); if (boxNow && updated) { boxNow.innerHTML = `<h2>${updated.origin_text} → ${Store.singleEvent().name} (${Store.singleEvent().city})</h2>
+  <div>${fmtDateTime(updated.depart_at)} • ${updated.ride_type.toUpperCase()}</div>
+  <div>Places restantes: ${Store.seatsLeft(updated.id)}/${updated.seats_total}</div>
+  <div>Conducteur: ${updated.driver||'Invité'}</div>`; }
+    }, 3000);
   });
   $('#page').append(frag); }
 

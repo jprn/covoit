@@ -40,3 +40,6 @@ fieldset{border:1px solid #333;border-radius:10px;padding:10px;margin:10px 0}
 .badge.pending{background:#5b5b1b;color:#efecc2}
 .badge.accepted{background:#215a2e;color:#d9ffe3}
 .badge.refused{background:#5a2121;color:#ffd0d0}
+.badge.full{background:#444;color:#bbb;border:1px solid #555}
+
+.btn[disabled], .btn.disabled{opacity:.55; cursor:not-allowed; filter:grayscale(.3)}
