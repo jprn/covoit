@@ -145,9 +145,15 @@ const API = {
 };
 
 async function loadRides(){
-  const rides = await API.listRides(Store.singleEvent()?.id || 1);
-  Store.cache.rides = rides;
-  return rides;
+  try{
+    const rides = await API.listRides(Store.singleEvent()?.id || 1);
+    Store.cache.rides = rides;
+    return rides;
+  }catch{
+    const fallback = window.DemoData?.rides || [];
+    Store.cache.rides = fallback;
+    return fallback;
+  }
 }
 
 async function loadEvent(){
@@ -322,7 +328,7 @@ async function renderEvent(){ const ev=Store.singleEvent(); const frag=$('#tpl-e
     }
   });
   sel.addEventListener('change', ()=>{ render().catch(()=>{}); }); chk.addEventListener('change', ()=>{ render().catch(()=>{}); });
-  await render();
+  try { await render(); } catch { /* fallback to empty list already handled in loadRides */ }
   $('#page').append(frag);
 }
 
