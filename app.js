@@ -5,6 +5,29 @@ const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 
 const LS_OWNER_VERIF = 'sportride_owner_verif_v1';
 const LS_DEVICE_ID = 'sportride_device_id_v1';
+const QS = new URLSearchParams(location.search);
+
+// Force hard reload: unregister SW, clear Cache Storage, then reload with cache-busting param
+async function hardReload(){
+  try{
+    if ('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r=> r.unregister().catch(()=>{})));
+    }
+  }catch{}
+  try{
+    if (window.caches && caches.keys){
+      const names = await caches.keys();
+      await Promise.all(names.map(n=> caches.delete(n).catch(()=>{})));
+    }
+  }catch{}
+  // Keep hash, add/replace cb param to bust caches
+  const url = new URL(location.href);
+  url.searchParams.set('cb', String(Date.now()));
+  // Remove any hard flag to avoid loop
+  url.searchParams.delete('hard');
+  location.replace(url.toString());
+}
 
 const Store = {
   event: window.DemoData?.event || null,
@@ -291,7 +314,11 @@ async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.si
   });
   sel.addEventListener('change', ()=>{ render().catch(()=>{}); }); chk.addEventListener('change', ()=>{ render().catch(()=>{}); });
   const btnRefresh = $('#btn-ev-refresh', frag);
-  if (btnRefresh){ btnRefresh.addEventListener('click', async ()=>{ await loadEvent().catch(()=>{}); await render().catch(()=>{}); const c=$('#event-card'); if(c){ const ev2=Store.singleEvent(); const src2=Store.eventSource==='api'?'API':'local'; c.innerHTML = `<h2>${ev2.name}</h2><div class=\"muted\">Données: ${src2} • API: <code id=\\"api-base\\">${API_BASE}</code></div><div>${ev2.city} • ${new Date(ev2.date).toLocaleDateString()} • ${ev2.time_hint||''}</div><p>${ev2.desc||''}</p><div class=\"cta-row\"><button id=\"btn-ev-refresh\" class=\"btn\">Rafraîchir</button></div>`; } }); }
+  if (btnRefresh){ btnRefresh.addEventListener('click', async (e)=>{
+    if (e && (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey)) { await hardReload(); return; }
+    await loadEvent().catch(()=>{}); await render().catch(()=>{});
+    const c=$('#event-card'); if(c){ const ev2=Store.singleEvent(); const src2=Store.eventSource==='api'?'API':'local'; c.innerHTML = `<h2>${ev2.name}</h2><div class=\"muted\">Données: ${src2} • API: <code id=\\"api-base\\">${API_BASE}</code></div><div>${ev2.city} • ${new Date(ev2.date).toLocaleDateString()} • ${ev2.time_hint||''}</div><p>${ev2.desc||''}</p><div class=\"cta-row\"><button id=\"btn-ev-refresh\" class=\"btn\">Rafraîchir</button></div>`; }
+  }); }
   try { await render(); } catch { /* fallback to empty list already handled in loadRides */ }
   $('#page').append(frag);
 }
