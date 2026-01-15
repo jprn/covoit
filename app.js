@@ -434,9 +434,14 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   // Close on Escape key while modal is visible
   frag.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && !modal.classList.contains('hidden')) closeModal(); });
   // Edit modal handlers
+  let editPin = null; // store PIN for this edit session
   const closeEdit = ()=> editModal.classList.add('hidden');
   const openEdit = ()=>{
     if (!editModal){ toast('Modal d\'édition introuvable'); return; }
+    // Ask PIN BEFORE opening the modal
+    const _pin = prompt('Entrez le code PIN conducteur pour ce trajet');
+    if (!_pin){ return; }
+    editPin = _pin;
     // Prefill fields from current ride r
     if (editForm){
       if (editForm.ride_type) editForm.ride_type.value = (r.ride_type||'go');
@@ -504,7 +509,7 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
       origin_text: p.origin,
       seats_total: Number(p.seats||1),
     };
-    const pin = prompt('Entrez le code PIN conducteur pour ce trajet');
+    const pin = editPin || prompt('Entrez le code PIN conducteur pour ce trajet');
     if (!pin) return;
     try{
       await API.updateRide({ ...payload, pin });
