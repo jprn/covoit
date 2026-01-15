@@ -8,9 +8,11 @@ const LS_DEVICE_ID = 'sportride_device_id_v1';
 
 const Store = {
   event: window.DemoData?.event || null,
+  eventSource: 'demo',
   deviceId: null,
   cache: {
     rides: [],
+    ridesSource: 'demo',
     requestsByRide: new Map(),
     myRequests: [],
   },
@@ -148,10 +150,12 @@ async function loadRides(){
   try{
     const rides = await API.listRides(Store.singleEvent()?.id || 1);
     Store.cache.rides = rides;
+    Store.cache.ridesSource = 'api';
     return rides;
   }catch{
     const fallback = window.DemoData?.rides || [];
     Store.cache.rides = fallback;
+    Store.cache.ridesSource = 'demo';
     return fallback;
   }
 }
@@ -159,9 +163,10 @@ async function loadRides(){
 async function loadEvent(){
   try {
     const ev = await API.getEvent();
-    if (ev && ev.id) Store.event = ev;
+    if (ev && ev.id) { Store.event = ev; Store.eventSource = 'api'; }
   } catch {
     // keep DemoData fallback
+    Store.eventSource = 'demo';
   }
 }
 function getRide(id){
@@ -266,8 +271,9 @@ function rideCard(r){ const reqs = cachedRequestsByRide(r.id); const pCount = re
 // Views
 async function renderHome(){ const frag=$('#tpl-home').content.cloneNode(true); $('#page').append(frag); }
 
-async function renderEvent(){ const ev=Store.singleEvent(); const frag=$('#tpl-event').content.cloneNode(true); const card=$('#event-card',frag);
-  card.innerHTML = `<h2>${ev.name}</h2><div>${ev.city} • ${new Date(ev.date).toLocaleDateString()} • ${ev.time_hint||''}</div><p>${ev.desc||''}</p>`;
+async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.singleEvent(); const frag=$('#tpl-event').content.cloneNode(true); const card=$('#event-card',frag);
+  const src = Store.eventSource==='api'? 'API' : 'local';
+  card.innerHTML = `<h2>${ev.name}</h2><div class="muted">Données: ${src}</div><div>${ev.city} • ${new Date(ev.date).toLocaleDateString()} • ${ev.time_hint||''}</div><p>${ev.desc||''}</p><div class="cta-row"><button id="btn-ev-refresh" class="btn">Rafraîchir</button></div>`;
   const list=$('#ev-rides',frag), empty=$('#ev-empty',frag), sel=$('#ev-filter-type',frag), chk=$('#ev-only-available',frag);
   async function render(){
     const all = await loadRides();
@@ -328,6 +334,8 @@ async function renderEvent(){ const ev=Store.singleEvent(); const frag=$('#tpl-e
     }
   });
   sel.addEventListener('change', ()=>{ render().catch(()=>{}); }); chk.addEventListener('change', ()=>{ render().catch(()=>{}); });
+  const btnRefresh = $('#btn-ev-refresh', frag);
+  if (btnRefresh){ btnRefresh.addEventListener('click', async ()=>{ await loadEvent().catch(()=>{}); await render().catch(()=>{}); const c=$('#event-card'); if(c){ const ev2=Store.singleEvent(); const src2=Store.eventSource==='api'?'API':'local'; c.innerHTML = `<h2>${ev2.name}</h2><div class=\"muted\">Données: ${src2}</div><div>${ev2.city} • ${new Date(ev2.date).toLocaleDateString()} • ${ev2.time_hint||''}</div><p>${ev2.desc||''}</p><div class=\"cta-row\"><button id=\"btn-ev-refresh\" class=\"btn\">Rafraîchir</button></div>`; } }); }
   try { await render(); } catch { /* fallback to empty list already handled in loadRides */ }
   $('#page').append(frag);
 }
