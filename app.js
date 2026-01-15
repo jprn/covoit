@@ -5,6 +5,7 @@ const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 
 // Store
 const LS_KEY = 'sportride_single_event_v1';
+const LS_OWNER_VERIF = 'sportride_owner_verif_v1';
 const Store = {
   data: null,
   load(){ try{ this.data = JSON.parse(localStorage.getItem(LS_KEY))||null; }catch{ this.data=null; }
@@ -33,6 +34,7 @@ const Store = {
   setRequestStatus(id, status){ const r=this.data.requests.find(x=>x.id===id); if(r){ r.status=status; this.save(); } return r; },
   addMessage({request_id, sender, text}){ const id=this.data.next.message++; const m={ id, request_id, sender, text, created_at:new Date().toISOString() }; this.data.messages.push(m); this.save(); return m; },
   requestsByRide(rideId){ return this.data.requests.filter(r=> r.ride_id===rideId); },
+  isOwner(rideId){ const ride=this.getRide(rideId); const me=this.data.currentUser||{}; if(!ride) return false; if(ride.driver && ride.driver===me.nickname){ if(!ride.driver_phone) return true; return (ride.driver_phone===me.phone); } return false; },
   seatsLeft(rideId){
     const ride = this.getRide(rideId);
     if (!ride) return 0;
@@ -42,6 +44,16 @@ const Store = {
   }
 };
 Store.load();
+
+// Owner PIN verification store (per device)
+const OwnerAuth = {
+  map: {},
+  load(){ try{ this.map = JSON.parse(localStorage.getItem(LS_OWNER_VERIF))||{}; }catch{ this.map={}; } },
+  save(){ localStorage.setItem(LS_OWNER_VERIF, JSON.stringify(this.map)); },
+  verify(rideId){ this.map[String(rideId)] = true; this.save(); },
+  isVerified(rideId){ return !!this.map[String(rideId)]; }
+};
+OwnerAuth.load();
 
 function fmtDateTime(iso){ const d=new Date(iso); return d.toLocaleString(); }
 function toast(msg){ const t=$('#toast'); if(!t){ alert(msg); return; } t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),2000); }
@@ -60,9 +72,11 @@ function refreshReqCounters(rideId){
     else { pend.classList.add('hidden'); pend.textContent=''; }
   }
 }
-function buildReqListHTML(rideId){ const items = Store.requestsByRide(rideId); if (!items.length) return '<li class="card">Aucune demande</li>'; const me=Store.data.currentUser?.nickname||'Invité';
-  return items.map(x=>{ const mine = x.passenger===me; const badge = x.status==='PENDING'?'badge pending': x.status==='ACCEPTED'?'badge accepted':'badge refused'; const cancelBtn = (mine && x.status==='PENDING')? `<button type=\"button\" class=\"btn small btn-cancel-req\" data-req=\"${x.id}\">Annuler</button>`: '';
-    return `<li class=\"card\"><div><strong>${x.passenger}</strong> • ${x.seats} place(s) <span class=\"${badge}\" style=\"margin-left:8px\">${x.status}</span></div><div class=\"muted\">${x.message||''}</div><div class=\"cta-row\">${cancelBtn}</div></li>`; }).join(''); }
+function buildReqListHTML(rideId){ const items = Store.requestsByRide(rideId); if (!items.length) return '<li class="card">Aucune demande</li>'; const me=Store.data.currentUser?.nickname||'Invité'; const owner=Store.isOwner(rideId);
+  return items.map(x=>{ const mine = x.passenger===me; const badge = x.status==='PENDING'?'badge pending': x.status==='ACCEPTED'?'badge accepted':'badge refused';
+    const cancelBtn = (mine && x.status==='PENDING')? `<button type=\"button\" class=\"btn small btn-cancel-req\" data-req=\"${x.id}\">Annuler</button>`: '';
+    const ownerBtns = (owner && x.status==='PENDING')? `<button type=\"button\" class=\"btn small primary btn-accept-req\" data-req=\"${x.id}\">Accepter</button> <button type=\"button\" class=\"btn small danger btn-refuse-req\" data-req=\"${x.id}\">Refuser</button>`: '';
+    return `<li class=\"card\"><div><strong>${x.passenger}</strong> • ${x.seats} place(s) <span class=\"${badge}\" style=\"margin-left:8px\">${x.status}</span></div><div class=\"muted\">${x.message||''}</div><div class=\"cta-row\">${ownerBtns} ${cancelBtn}</div></li>`; }).join(''); }
 
 // Router
 const routes = {
@@ -97,7 +111,7 @@ async function renderEvent(){ const ev=Store.singleEvent(); const frag=$('#tpl-e
   card.innerHTML = `<h2>${ev.name}</h2><div>${ev.city} • ${new Date(ev.date).toLocaleDateString()} • ${ev.time_hint||''}</div><p>${ev.desc||''}</p>`;
   const list=$('#ev-rides',frag), empty=$('#ev-empty',frag), sel=$('#ev-filter-type',frag), chk=$('#ev-only-available',frag);
   function render(){ let rides=Store.listRides({type:sel.value}); if (chk.checked) rides = rides.filter(r=> Store.seatsLeft(r.id)>0); list.innerHTML=''; empty.classList.toggle('hidden', rides.length>0); rides.forEach(r=>{ list.insertAdjacentHTML('beforeend', rideCard(r)); }); }
-  // Delegated interactions: toggle requests list and cancel
+  // Delegated interactions: toggle requests list and cancel/accept/refuse (with PIN if needed)
   list.addEventListener('click', (e)=>{
     const btn = e.target.closest('.btn-reqs');
     if (btn){ const rid=Number(btn.getAttribute('data-ride')); const ul=document.getElementById(`reqs-${rid}`); if(!ul) return; if(!ul.classList.contains('hidden')){ ul.classList.add('hidden'); ul.innerHTML=''; return; } ul.innerHTML = buildReqListHTML(rid); ul.classList.remove('hidden'); return; }
@@ -106,6 +120,16 @@ async function renderEvent(){ const ev=Store.singleEvent(); const frag=$('#tpl-e
       // refresh the list and counters
       const rideId = req?.ride_id; if (rideId){ refreshReqCounters(rideId); const ul=document.getElementById(`reqs-${rideId}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(rideId); }
       }
+    }
+    const accept = e.target.closest('.btn-accept-req');
+    if (accept){ const id=Number(accept.getAttribute('data-req')); const reqObj = Store.data.requests.find(x=>x.id===id); const ride = reqObj && Store.getRide(reqObj.ride_id);
+      if (ride && !(Store.isOwner(ride.id) || OwnerAuth.isVerified(ride.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!==ride.owner_pin){ toast('PIN incorrect'); return; } OwnerAuth.verify(ride.id); }
+      const req=Store.setRequestStatus(id,'ACCEPTED'); if(req){ toast('Demande acceptée'); refreshReqCounters(req.ride_id); const ul=document.getElementById(`reqs-${req.ride_id}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(req.ride_id); } refreshRideCards(req.ride_id); }
+    }
+    const refuse = e.target.closest('.btn-refuse-req');
+    if (refuse){ const id=Number(refuse.getAttribute('data-req')); const reqObj = Store.data.requests.find(x=>x.id===id); const ride = reqObj && Store.getRide(reqObj.ride_id);
+      if (ride && !(Store.isOwner(ride.id) || OwnerAuth.isVerified(ride.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!==ride.owner_pin){ toast('PIN incorrect'); return; } OwnerAuth.verify(ride.id); }
+      const req=Store.setRequestStatus(id,'REFUSED'); if(req){ toast('Demande refusée'); refreshReqCounters(req.ride_id); const ul=document.getElementById(`reqs-${req.ride_id}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(req.ride_id); } refreshRideCards(req.ride_id); }
     }
   });
   sel.addEventListener('change', render); chk.addEventListener('change', render); render(); $('#page').append(frag); }
@@ -116,8 +140,15 @@ async function renderOffer(){ const frag=$('#tpl-offer').content.cloneNode(true)
     const required=[['ride_type','Type'],['depart_at','Date/heure'],['origin','Départ'],['seats','Places'],['nickname','Pseudo'],['phone','Téléphone']];
     for(const [k,label] of required){ if(!p[k]||String(p[k]).trim()===''){ err.textContent=`${label} est requis`; form.querySelector(`[name="${k}"]`).focus(); return; }}
     Store.data.currentUser={ ...me, nickname:p.nickname, phone:p.phone }; Store.save();
-    const payload={ event_id:Store.singleEvent().id, ride_type:p.ride_type, depart_at:new Date(p.depart_at).toISOString(), origin_text:p.origin, seats_total:Number(p.seats), driver: Store.data.currentUser.nickname||'Invité' };
-    const ride=Store.addRide(payload); toast('Trajet publié'); location.hash = `#ride?id=${ride.id}`;
+    // generate a 6-digit PIN for the ride owner
+    const pin = String(Math.floor(100000 + Math.random()*900000));
+    const payload={ event_id:Store.singleEvent().id, ride_type:p.ride_type, depart_at:new Date(p.depart_at).toISOString(), origin_text:p.origin, seats_total:Number(p.seats), driver: Store.data.currentUser.nickname||'Invité', driver_phone: Store.data.currentUser.phone||'', owner_pin: pin };
+    const ride=Store.addRide(payload);
+    // mark verified on this device and inform the user
+    OwnerAuth.verify(ride.id);
+    toast(`Trajet publié. PIN conducteur: ${pin}`);
+    alert(`Code PIN conducteur pour ce trajet: ${pin}\nConservez-le pour gérer les demandes depuis un autre appareil.`);
+    location.hash = `#ride?id=${ride.id}`;
   });
   $('#page').append(frag); }
 
@@ -129,13 +160,19 @@ async function renderSearch(){ const frag=$('#tpl-search').content.cloneNode(tru
     if(sort.value==='earliest') r.sort((a,b)=> new Date(a.depart_at)-new Date(b.depart_at)); if(sort.value==='seats') r.sort((a,b)=> (Store.seatsLeft(b.id))-(Store.seatsLeft(a.id))); if(sort.value==='cost') r.sort((a,b)=> (a.price||0)-(b.price||0));
     list.innerHTML=''; empty.classList.toggle('hidden', r.length>0); r.forEach(x=> list.insertAdjacentHTML('beforeend', rideCard(x)));
   }
-  // Delegation in search list as well
+  // Delegation in search list as well (with PIN)
   list.addEventListener('click', (e)=>{
     const btn = e.target.closest('.btn-reqs');
     if (btn){ const rid=Number(btn.getAttribute('data-ride')); const ul=document.getElementById(`reqs-${rid}`); if(!ul) return; if(!ul.classList.contains('hidden')){ ul.classList.add('hidden'); ul.innerHTML=''; return; } ul.innerHTML = buildReqListHTML(rid); ul.classList.remove('hidden'); return; }
     const cancel = e.target.closest('.btn-cancel-req');
     if (cancel){ const id = Number(cancel.getAttribute('data-req')); const req = Store.setRequestStatus(id, 'CANCELLED'); if(req){ toast('Demande annulée'); } const rideId = req?.ride_id; if (rideId){ refreshReqCounters(rideId); const ul=document.getElementById(`reqs-${rideId}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(rideId); } }
     }
+    const accept = e.target.closest('.btn-accept-req'); if (accept){ const id=Number(accept.getAttribute('data-req')); const reqObj = Store.data.requests.find(x=>x.id===id); const ride = reqObj && Store.getRide(reqObj.ride_id);
+      if (ride && !(Store.isOwner(ride.id) || OwnerAuth.isVerified(ride.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!==ride.owner_pin){ toast('PIN incorrect'); return; } OwnerAuth.verify(ride.id); }
+      const req=Store.setRequestStatus(id,'ACCEPTED'); if(req){ toast('Demande acceptée'); refreshReqCounters(req.ride_id); const ul=document.getElementById(`reqs-${req.ride_id}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(req.ride_id); } refreshRideCards(req.ride_id); }}
+    const refuse = e.target.closest('.btn-refuse-req'); if (refuse){ const id=Number(refuse.getAttribute('data-req')); const reqObj = Store.data.requests.find(x=>x.id===id); const ride = reqObj && Store.getRide(reqObj.ride_id);
+      if (ride && !(Store.isOwner(ride.id) || OwnerAuth.isVerified(ride.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!==ride.owner_pin){ toast('PIN incorrect'); return; } OwnerAuth.verify(ride.id); }
+      const req=Store.setRequestStatus(id,'REFUSED'); if(req){ toast('Demande refusée'); refreshReqCounters(req.ride_id); const ul=document.getElementById(`reqs-${req.ride_id}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(req.ride_id); } refreshRideCards(req.ride_id); }}
   });
   const resetBtn = $('#search-reset',frag);
   if (resetBtn){ resetBtn.addEventListener('click', ()=>{ sel.value='any'; city.value=''; time.value=''; seats.value=''; cost.value=''; sort.value='earliest'; only.checked=false; apply(); }); }
@@ -157,7 +194,7 @@ async function renderRide(params){ const id=params.get('id'); const r=Store.getR
   const reqSection = document.createElement('section');
   reqSection.innerHTML = `<h3>Demandes reçues</h3><ul id="ride-reqs-list" class="list">${buildReqListHTML(r.id)}</ul>`;
   btn.insertAdjacentElement('afterend', reqSection);
-  // Allow cancelling own PENDING requests directly from detail page
+  // Allow cancelling/accepting/refusing from detail page
   reqSection.addEventListener('click', (e)=>{
     const cancel = e.target.closest('.btn-cancel-req');
     if (!cancel) return;
@@ -192,6 +229,15 @@ async function renderRide(params){ const id=params.get('id'); const r=Store.getR
   modal.addEventListener('click', (e)=>{ if (e.target === modal) closeModal(); });
   // Close on Escape key while modal is visible
   frag.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && !modal.classList.contains('hidden')) closeModal(); });
+  // Owner actions in detail (with PIN)
+  reqSection.addEventListener('click', (e)=>{
+    const accept = e.target.closest('.btn-accept-req');
+    if (accept){ const id=Number(accept.getAttribute('data-req')); if(!(Store.isOwner(r.id) || OwnerAuth.isVerified(r.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!== (Store.getRide(r.id)?.owner_pin||'')){ toast('PIN incorrect'); return; } OwnerAuth.verify(r.id); }
+      const rq=Store.setRequestStatus(id,'ACCEPTED'); if(rq){ toast('Demande acceptée'); const ul=reqSection.querySelector('#ride-reqs-list'); if(ul) ul.innerHTML = buildReqListHTML(r.id); refreshReqCounters(r.id); const leftAfter=Store.seatsLeft(r.id); if (leftAfter<=0){ btn.classList.add('disabled'); btn.setAttribute('disabled','disabled'); } } }
+    const refuse = e.target.closest('.btn-refuse-req');
+    if (refuse){ const id=Number(refuse.getAttribute('data-req')); if(!(Store.isOwner(r.id) || OwnerAuth.isVerified(r.id))){ const pin=prompt('Entrez le code PIN conducteur pour ce trajet'); if(!pin || pin!== (Store.getRide(r.id)?.owner_pin||'')){ toast('PIN incorrect'); return; } OwnerAuth.verify(r.id); }
+      const rq=Store.setRequestStatus(id,'REFUSED'); if(rq){ toast('Demande refusée'); const ul=reqSection.querySelector('#ride-reqs-list'); if(ul) ul.innerHTML = buildReqListHTML(r.id); refreshReqCounters(r.id); } }
+  });
   form.addEventListener('submit', (e)=>{ e.preventDefault(); const p=Object.fromEntries(new FormData(form).entries());
     const name = (p.passenger_name&&p.passenger_name.trim()) || (Store.data.currentUser?.nickname)||'Invité';
     const phone = (p.passenger_phone&&p.passenger_phone.trim()) || (Store.data.currentUser?.phone)||'';
@@ -202,8 +248,10 @@ async function renderRide(params){ const id=params.get('id'); const r=Store.getR
     // Guard: prevent creating a request if not enough seats at submission time
     if (Store.seatsLeft(r.id) < seats) { toast('Trajet complet ou places insuffisantes'); closeModal(); return; }
     const req=Store.addRequest({ ride_id:r.id, passenger:name, seats, message:(p.message||'')+ (phone? ` (tel: ${phone})`:'') }); toast('Demande envoyée'); closeModal();
-    // auto-accept after 3s if enough seats (simple simulation)
-    setTimeout(()=>{ const left = Store.seatsLeft(r.id); if (left >= req.seats) { const rr = Store.setRequestStatus(req.id, 'ACCEPTED'); if(rr){ toast('Demande acceptée'); } } else { Store.setRequestStatus(req.id, 'REFUSED'); toast('Demande refusée (plus de places)'); }
+    // auto-accept after 3s if enough seats (simple simulation) — disabled if PIN set and not verified
+    const rideNow = Store.getRide(r.id);
+    const shouldAuto = !(rideNow?.owner_pin) || OwnerAuth.isVerified(r.id) || Store.isOwner(r.id);
+    if (shouldAuto) setTimeout(()=>{ const left = Store.seatsLeft(r.id); if (left >= req.seats) { const rr = Store.setRequestStatus(req.id, 'ACCEPTED'); if(rr){ toast('Demande acceptée'); } } else { Store.setRequestStatus(req.id, 'REFUSED'); toast('Demande refusée (plus de places)'); }
       // refresh details display
       const updated = Store.getRide(r.id); const boxNow = document.getElementById('ride-details'); if (boxNow && updated) { boxNow.innerHTML = `<h2>${updated.origin_text} → ${Store.singleEvent().name} (${Store.singleEvent().city})</h2>
   <div>${fmtDateTime(updated.depart_at)} • ${updated.ride_type.toUpperCase()}</div>
