@@ -206,11 +206,8 @@ function buildReqListHTML(rideId){ const items = cachedRequestsByRide(rideId); c
     const cancelBtn = (mine && x.status==='PENDING')? `<button type=\"button\" class=\"btn small btn-cancel-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Annuler</button>`: '';
     const ownerBtns = (x.status==='PENDING')? `<button type=\"button\" class=\"btn small primary btn-accept-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Accepter</button> <button type=\"button\" class=\"btn small danger btn-refuse-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Refuser</button>`: '';
     const itemCls = x.status==='ACCEPTED' ? 'card req accepted' : (x.status==='PENDING' ? 'card req pending' : 'card req');
-    const isOwner = OwnerAuth.isVerified(rideId);
     const phoneBlock = (x.status==='ACCEPTED' && x.passenger_phone)
-      ? (isOwner
-          ? `<div><strong>Tél:</strong> ${x.passenger_phone}</div>`
-          : `<div><strong>Tél:</strong> <span class=\"muted\">Masqué</span> <button type=\"button\" class=\"btn small btn-show-phone\" data-ride=\"${rideId}\" data-phone=\"${x.passenger_phone}\">Voir téléphone</button></div>`)
+      ? `<div><strong>Tél:</strong> <span class=\"phone-val\" data-phone=\"${x.passenger_phone}\">Masqué</span> <button type=\"button\" class=\"btn small btn-show-phone\" data-ride=\"${rideId}\" data-phone=\"${x.passenger_phone}\">Téléphone</button></div>`
       : '';
     return `<li class=\"${itemCls}\"><div><strong>${x.passenger_name||x.passenger||''}</strong> • ${x.seats} place(s) <span class=\"${badge}\" style=\"margin-left:8px\">${statusLabelFR(x.status)}</span></div><div class=\"muted\">${x.message||''}</div>${phoneBlock}<div class=\"cta-row\">${ownerBtns} ${cancelBtn}</div></li>`; };
   let html = '';
@@ -294,11 +291,9 @@ async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.si
       const span = container && container.querySelector('.phone-val, .muted');
       const phone = show.getAttribute('data-phone') || (span && span.getAttribute('data-phone')) || '';
       const reveal = (num)=>{ if (span){ span.textContent = num; span.classList.remove('muted'); span.classList.add('phone-val'); } show.remove(); };
-      if (OwnerAuth.isVerified(rideId)){ reveal(phone); return; }
       const pin = prompt('Entrez le code PIN conducteur pour ce trajet');
       if(!pin){ return; }
       API.ownerVerify({ ride_id: rideId, pin }).then(()=>{
-        OwnerAuth.verify(rideId);
         reveal(phone);
       }).catch(err=> toast(err.message||'Code PIN incorrect'));
       return;
@@ -478,11 +473,9 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
       const span = container && container.querySelector('.phone-val, .muted');
       const phone = show.getAttribute('data-phone') || (span && span.getAttribute('data-phone')) || '';
       const reveal = (num)=>{ if (span){ span.textContent = num; span.classList.remove('muted'); span.classList.add('phone-val'); } show.remove(); };
-      if (OwnerAuth.isVerified(rideId)){ reveal(phone); return; }
       const pin = prompt('Entrez le code PIN conducteur pour ce trajet');
       if(!pin){ return; }
       API.ownerVerify({ ride_id: rideId, pin }).then(()=>{
-        OwnerAuth.verify(rideId);
         reveal(phone);
       }).catch(err=> toast(err.message||'Code PIN incorrect'));
       return;
