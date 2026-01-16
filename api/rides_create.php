@@ -36,7 +36,7 @@ $departAt = date('Y-m-d H:i:s', $ts);
 
 // Generate a 6-digit PIN and store only a hash
 $pin = (string)random_int(100000, 999999);
-//$pinHash = password_hash($pin, PASSWORD_DEFAULT);
+$pinHash = password_hash($pin, PASSWORD_DEFAULT);
 
 try {
     $pdo = require __DIR__ . '/db.php';
@@ -50,7 +50,7 @@ try {
         'seats_total' => $seatsTotal,
         'driver_name' => $driverName,
         'driver_phone' => $driverPhone !== '' ? $driverPhone : null,
-        'owner_pin_hash' => $pin,
+        'owner_pin_hash' => $pinHash,
     ]);
 
     $rideId = (int)$pdo->lastInsertId();

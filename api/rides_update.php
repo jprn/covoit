@@ -53,14 +53,14 @@ try {
 
     $pdo = require __DIR__ . '/db.php';
 
-    // Verify PIN matches the ride owner
-    $stmt = $pdo->prepare('SELECT owner_pin FROM rides WHERE id = ?');
+    // Verify PIN matches the ride owner (compare against stored hash)
+    $stmt = $pdo->prepare('SELECT owner_pin_hash FROM rides WHERE id = ?');
     $stmt->execute([$rideId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$row) {
         send_json(['error' => 'Ride not found'], 404);
     }
-    if (!hash_equals((string)$row['owner_pin'], $pin)) {
+    if (!password_verify($pin, (string)$row['owner_pin_hash'])) {
         send_json(['error' => 'Invalid PIN'], 401);
     }
 
