@@ -117,6 +117,9 @@ const API = {
   async deleteRide(payload){
     return apiFetch('/rides_delete.php', { method:'POST', body: payload });
   },
+  async ownerVerify(payload){
+    return apiFetch('/owner_verify.php', { method:'POST', body: payload });
+  },
 };
 
 async function loadRides(){
@@ -203,7 +206,13 @@ function buildReqListHTML(rideId){ const items = cachedRequestsByRide(rideId); c
     const cancelBtn = (mine && x.status==='PENDING')? `<button type=\"button\" class=\"btn small btn-cancel-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Annuler</button>`: '';
     const ownerBtns = (x.status==='PENDING')? `<button type=\"button\" class=\"btn small primary btn-accept-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Accepter</button> <button type=\"button\" class=\"btn small danger btn-refuse-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Refuser</button>`: '';
     const itemCls = x.status==='ACCEPTED' ? 'card req accepted' : (x.status==='PENDING' ? 'card req pending' : 'card req');
-    return `<li class=\"${itemCls}\"><div><strong>${x.passenger_name||x.passenger||''}</strong> • ${x.seats} place(s) <span class=\"${badge}\" style=\"margin-left:8px\">${statusLabelFR(x.status)}</span></div><div class=\"muted\">${x.message||''}</div><div class=\"cta-row\">${ownerBtns} ${cancelBtn}</div></li>`; };
+    const isOwner = OwnerAuth.isVerified(rideId);
+    const phoneBlock = (x.status==='ACCEPTED' && x.passenger_phone)
+      ? (isOwner
+          ? `<div><strong>Tél:</strong> ${x.passenger_phone}</div>`
+          : `<div><strong>Tél:</strong> <span class=\"muted\">Masqué</span> <button type=\"button\" class=\"btn small btn-show-phone\" data-ride=\"${rideId}\" data-phone=\"${x.passenger_phone}\">Voir téléphone</button></div>`)
+      : '';
+    return `<li class=\"${itemCls}\"><div><strong>${x.passenger_name||x.passenger||''}</strong> • ${x.seats} place(s) <span class=\"${badge}\" style=\"margin-left:8px\">${statusLabelFR(x.status)}</span></div><div class=\"muted\">${x.message||''}</div>${phoneBlock}<div class=\"cta-row\">${ownerBtns} ${cancelBtn}</div></li>`; };
   let html = '';
   // Section: Acceptés
   html += `<li class=\"card section\"><h4>Participants (acceptés)</h4></li>`;
@@ -220,7 +229,6 @@ const routes = {
   '#offer': renderOffer,
   '#search': renderSearch,
   '#ride': renderRide,
-  '#requests': renderRequests,
 };
 
 function mountLayout(){ const root=$('#app'); root.innerHTML=''; root.append($('#tpl-layout').content.cloneNode(true)); }
@@ -360,7 +368,7 @@ async function renderOffer(){ const frag=$('#tpl-offer').content.cloneNode(true)
   $('#page').append(frag); }
 
 async function renderSearch(){ const frag=$('#tpl-search').content.cloneNode(true); const list=$('#search-list',frag), empty=$('#search-empty',frag);
-  const sel=$('#search-type',frag), city=$('#search-city',frag), time=$('#search-time',frag), seats=$('#search-seats',frag), cost=$('#search-cost',frag), sort=$('#search-sort',frag), only=$('#search-only-available',frag);
+  const sel=$('#search-type',frag), city=$('#search-city',frag), time=$('#search-time',frag), seats=$('#search-seats',frag), sort=$('#search-sort',frag), only=$('#search-only-available',frag);
   async function apply(){
     const all = await loadRides();
     await Promise.all(all.map(r=> loadRequestsByRide(r.id).catch(()=>[])));
@@ -423,8 +431,8 @@ async function renderSearch(){ const frag=$('#tpl-search').content.cloneNode(tru
     }
   });
   const resetBtn = $('#search-reset',frag);
-  if (resetBtn){ resetBtn.addEventListener('click', ()=>{ sel.value='any'; city.value=''; time.value=''; seats.value=''; cost.value=''; sort.value='earliest'; only.checked=false; apply().catch(()=>{}); }); }
-  [sel,city,time,seats,cost,sort,only].forEach(el=> el.addEventListener('input', ()=>{ apply().catch(()=>{}); }));
+  if (resetBtn){ resetBtn.addEventListener('click', ()=>{ sel.value='any'; city.value=''; time.value=''; seats.value=''; sort.value='earliest'; only.checked=false; apply().catch(()=>{}); }); }
+  [sel,city,time,seats,sort,only].forEach(el=> el.addEventListener('input', ()=>{ apply().catch(()=>{}); }));
   await apply();
   $('#page').append(frag); }
 
@@ -616,35 +624,7 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   });
   $('#page').append(frag); }
 
-async function renderRequests(){ const frag=$('#tpl-requests').content.cloneNode(true); const list=$('#req-list',frag), empty=$('#req-empty',frag);
-  async function render(){
-    await loadRides();
-    const items = await API.listMyRequests(Store.ensureDeviceId());
-    Store.cache.myRequests = items;
-    list.innerHTML='';
-    empty.classList.toggle('hidden', items.length>0);
-    items.forEach(x=>{
-      const ride = getRide(x.ride_id);
-      const badge = x.status==='PENDING'?'badge pending': x.status==='ACCEPTED'?'badge accepted':'badge refused';
-      const canCancel = x.status==='PENDING';
-      list.insertAdjacentHTML('beforeend', `<li class=\"card\"><div><strong>${ride?.origin_text||'—'} → ${Store.singleEvent().name}</strong></div><div>${fmtDateTime(ride?.depart_at||x.created_at)} • <span class=\"${badge}\">${x.status}</span></div><div>${x.seats} place(s) • ${x.message||''}</div>${canCancel? '<div class=\\"cta-row\\"><button type=\\"button\\" class=\\"btn danger btn-cancel-req\\" data-req=\\"'+x.id+'\\" data-ride=\\"'+x.ride_id+'\\">Annuler</button></div>':''}</li>`);
-    });
-  }
-  list.addEventListener('click', (e)=>{
-    const btn=e.target.closest('.btn-cancel-req');
-    if (!btn) return;
-    const id=Number(btn.getAttribute('data-req'));
-    const rideId=Number(btn.getAttribute('data-ride'));
-    API.cancelRequest({ request_id: id, requester_device_id: Store.ensureDeviceId() }).then(async ()=>{
-      toast('Demande annulée');
-      await loadRequestsByRide(rideId).catch(()=>[]);
-      refreshReqCounters(rideId);
-      await render();
-    }).catch(err=> toast(err.message||'Erreur'));
-  });
-  await render();
-  $('#page').append(frag);
-}
+ 
 
 // Bootstrap
 function setActiveFromHash(){ const base=(location.hash||'#home').split('?')[0]; $$('.tab').forEach(t=> t.classList.toggle('active', t.getAttribute('href')===base)); }
