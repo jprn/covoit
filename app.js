@@ -247,7 +247,6 @@ async function renderHome(){ const frag=$('#tpl-home').content.cloneNode(true); 
 async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.singleEvent(); const frag=$('#tpl-event').content.cloneNode(true); const card=$('#event-card',frag);
   const src = Store.eventSource==='api'? 'API' : 'local';
   card.innerHTML = `<h2>${ev.name}</h2>
-  <div class="muted">Données: ${src} • API: <code id="api-base">${API_BASE}</code></div>
   <div>${ev.city} • ${new Date(ev.date).toLocaleDateString()} • ${ev.time_hint||''}</div>
   <p>${ev.desc||''}</p>
   <div class="cta-row">
