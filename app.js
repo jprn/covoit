@@ -246,7 +246,7 @@ function rideCard(r){ const reqs = cachedRequestsByRide(r.id); const pCount = re
   <div><strong>Lieu de départ:</strong> ${r.origin_text}</div>
   <div><strong>Heure de départ:</strong> ${fmtTimeHM(r.depart_at)}</div>
   <div><strong>Places disponibles:</strong> ${left}/${r.seats_total} ${full? '<span class="badge full">Complet</span>':''} <span id="pend-${r.id}" class="badge pending ${pCount>0? '' : 'hidden'}">${pCount>0? `${pCount} nouvelles` : ''}</span></div>
-  <div class="cta-row">${full? '<span class="badge full">Complet</span>' : ''} <a class="btn primary" href="#ride?id=${r.id}">Voir</a>
+  <div class="cta-row"><a class="btn primary" href="#ride?id=${r.id}">Voir</a>
     <button type="button" class="btn btn-reqs" data-ride="${r.id}">${reqLabel}</button>
   </div>
   <ul id="reqs-${r.id}" class="list hidden"></ul>
