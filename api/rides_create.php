@@ -50,7 +50,7 @@ try {
         'seats_total' => $seatsTotal,
         'driver_name' => $driverName,
         'driver_phone' => $driverPhone !== '' ? $driverPhone : null,
-        'owner_pin_hash' => $pinHash,
+        'owner_pin_hash' => $pin,
     ]);
 
     $rideId = (int)$pdo->lastInsertId();
