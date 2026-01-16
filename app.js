@@ -505,8 +505,6 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   // Fallback delegation at document level (in case of dynamic re-renders)
   const docClickHandler = async (e)=>{
     if (!document.body.contains(box)) { document.removeEventListener('click', docClickHandler); return; }
-    const be = e.target.closest && e.target.closest('#btn-edit-ride');
-    if (be){ e.preventDefault(); openEdit(); return; }
   };
   document.addEventListener('click', docClickHandler);
   if (editForm){ editForm.addEventListener('submit', async (e)=>{
