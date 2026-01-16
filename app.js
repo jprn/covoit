@@ -444,7 +444,7 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
         boxNow.innerHTML = `<h2>${r.origin_text} → ${Store.singleEvent().name} (${Store.singleEvent().city})</h2>
   <div><strong>Heure de départ : </strong>${fmtDateTime(r.depart_at)}</div>
   <div><strong>Places restantes : </strong>${leftAfter}/${r.seats_total} ${leftAfter<=0? '<span class="badge full">Complet</span>':''}</div>
-  <div><strong>Conducteur : </strong>${r.driver_name||r.driver||'Invité'}</div>`;
+  <div><strong>Conducteur : </strong>${r.driver_name||r.driver} Tel : ${r.driver_phone}</div>`;
       }
       if (leftAfter<=0) { btn.classList.add('disabled'); btn.setAttribute('disabled','disabled'); } else { btn.classList.remove('disabled'); btn.removeAttribute('disabled'); }
     }).catch(err=> toast(err.message||'Erreur'));
