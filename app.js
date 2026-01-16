@@ -202,13 +202,14 @@ function buildReqListHTML(rideId){ const items = cachedRequestsByRide(rideId); c
   const renderItem = (x)=>{ const mine = x.requester_device_id && x.requester_device_id===me; const badge = x.status==='PENDING'?'badge pending': x.status==='ACCEPTED'?'badge accepted':'badge refused';
     const cancelBtn = (mine && x.status==='PENDING')? `<button type=\"button\" class=\"btn small btn-cancel-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Annuler</button>`: '';
     const ownerBtns = (x.status==='PENDING')? `<button type=\"button\" class=\"btn small primary btn-accept-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Accepter</button> <button type=\"button\" class=\"btn small danger btn-refuse-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Refuser</button>`: '';
-    return `<li class=\"card\"><div><strong>${x.passenger_name||x.passenger||''}</strong> • ${x.seats} place(s) <span class=\"${badge}\" style=\"margin-left:8px\">${statusLabelFR(x.status)}</span></div><div class=\"muted\">${x.message||''}</div><div class=\"cta-row\">${ownerBtns} ${cancelBtn}</div></li>`; };
+    const itemCls = x.status==='ACCEPTED' ? 'card req accepted' : (x.status==='PENDING' ? 'card req pending' : 'card req');
+    return `<li class=\"${itemCls}\"><div><strong>${x.passenger_name||x.passenger||''}</strong> • ${x.seats} place(s) <span class=\"${badge}\" style=\"margin-left:8px\">${statusLabelFR(x.status)}</span></div><div class=\"muted\">${x.message||''}</div><div class=\"cta-row\">${ownerBtns} ${cancelBtn}</div></li>`; };
   let html = '';
   // Section: Acceptés
-  html += `<li class=\"card\"><h4>Participants (acceptés)</h4></li>`;
+  html += `<li class=\"card section\"><h4>Participants (acceptés)</h4></li>`;
   if (accepted.length){ html += accepted.map(renderItem).join(''); } else { html += `<li class=\"card\"><div class=\"empty\">Aucun participant</div></li>`; }
   // Section: En attente
-  html += `<li class=\"card\"><h4>En attente de validation</h4></li>`;
+  html += `<li class=\"card section\"><h4>En attente de validation</h4></li>`;
   if (pending.length){ html += pending.map(renderItem).join(''); } else { html += `<li class=\"card\"><div class=\"empty\">Aucune demande en attente</div></li>`; }
   return html; }
 

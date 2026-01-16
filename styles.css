@@ -31,6 +31,12 @@ h3{font-size:18px;color:var(--primary-2)}
 .list{list-style:none;margin:0;padding:0}
 .list .card{margin-bottom:12px}
 
+.card.section{background:linear-gradient(180deg,#ffffff 0%, #faf6ee 100%);border:1px dashed var(--border);box-shadow:none;padding:10px 12px;border-radius:14px}
+.card.section h4{margin:6px 0 4px 0;color:var(--primary-2)}
+.card.req{border-left:4px solid rgba(16,49,42,.14)}
+.card.req.accepted{border-left-color: rgba(47,158,68,.6);}
+.card.req.pending{border-left-color: rgba(240,124,46,.7);}
+
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:rgba(16,49,42,.06);color:var(--text);border:1px solid rgba(16,49,42,.12);border-radius:999px;padding:10px 14px;text-decoration:none;cursor:pointer;font-weight:700;transition:transform .12s ease, box-shadow .2s ease, background .12s ease}
 .btn.primary{background:var(--primary);border-color:rgba(16,49,42,.08);color:#fff}
 .btn.primary:hover{background:var(--primary-2)}
