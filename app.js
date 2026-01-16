@@ -486,10 +486,10 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   // Delegated clicks for edit/delete on the #ride-details box (survive innerHTML refresh)
   box.addEventListener('click', async (e)=>{
     const be = e.target.closest('#btn-edit-ride');
-    if (be){ e.preventDefault(); openEdit(); return; }
+    if (be){ e.preventDefault(); e.stopPropagation(); openEdit(); return; }
     const bd = e.target.closest('#btn-delete-ride');
     if (bd){
-      e.preventDefault();
+      e.preventDefault(); e.stopPropagation();
       if (!confirm('Supprimer ce trajet ? Cette action est irréversible.')) return;
       const pin = prompt('Entrez le code PIN conducteur pour ce trajet');
       if (!pin) return;
@@ -507,20 +507,6 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
     if (!document.body.contains(box)) { document.removeEventListener('click', docClickHandler); return; }
     const be = e.target.closest && e.target.closest('#btn-edit-ride');
     if (be){ e.preventDefault(); openEdit(); return; }
-    const bd = e.target.closest && e.target.closest('#btn-delete-ride');
-    if (bd){
-      e.preventDefault();
-      if (!confirm('Supprimer ce trajet ? Cette action est irréversible.')) return;
-      const pin = prompt('Entrez le code PIN conducteur pour ce trajet');
-      if (!pin) return;
-      try{
-        await API.deleteRide({ ride_id: r.id, pin });
-        toast('Trajet supprimé');
-        await loadRides();
-        location.hash = '#event';
-      }catch(err){ toast(err.message||'Erreur'); }
-      return;
-    }
   };
   document.addEventListener('click', docClickHandler);
   if (editForm){ editForm.addEventListener('submit', async (e)=>{
