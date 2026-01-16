@@ -287,6 +287,22 @@ async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.si
   list.addEventListener('click', (e)=>{
     const btn = e.target.closest('.btn-reqs');
     if (btn){ const rid=Number(btn.getAttribute('data-ride')); const ul=document.getElementById(`reqs-${rid}`); if(!ul) return; if(!ul.classList.contains('hidden')){ ul.classList.add('hidden'); ul.innerHTML=''; return; } ul.innerHTML = buildReqListHTML(rid); ul.classList.remove('hidden'); return; }
+    const show = e.target.closest('.btn-show-phone');
+    if (show){
+      const rideId = Number(show.getAttribute('data-ride'));
+      const container = show.parentElement;
+      const span = container && container.querySelector('.phone-val, .muted');
+      const phone = show.getAttribute('data-phone') || (span && span.getAttribute('data-phone')) || '';
+      const reveal = (num)=>{ if (span){ span.textContent = num; span.classList.remove('muted'); span.classList.add('phone-val'); } show.remove(); };
+      if (OwnerAuth.isVerified(rideId)){ reveal(phone); return; }
+      const pin = prompt('Entrez le code PIN conducteur pour ce trajet');
+      if(!pin){ return; }
+      API.ownerVerify({ ride_id: rideId, pin }).then(()=>{
+        OwnerAuth.verify(rideId);
+        reveal(phone);
+      }).catch(err=> toast(err.message||'Code PIN incorrect'));
+      return;
+    }
     const cancel = e.target.closest('.btn-cancel-req');
     if (cancel){
       const id = Number(cancel.getAttribute('data-req'));
@@ -455,6 +471,22 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   btn.insertAdjacentElement('afterend', reqSection);
   // Allow cancelling/accepting/refusing from detail page
   reqSection.addEventListener('click', (e)=>{
+    const show = e.target.closest('.btn-show-phone');
+    if (show){
+      const rideId = r.id;
+      const container = show.parentElement;
+      const span = container && container.querySelector('.phone-val, .muted');
+      const phone = show.getAttribute('data-phone') || (span && span.getAttribute('data-phone')) || '';
+      const reveal = (num)=>{ if (span){ span.textContent = num; span.classList.remove('muted'); span.classList.add('phone-val'); } show.remove(); };
+      if (OwnerAuth.isVerified(rideId)){ reveal(phone); return; }
+      const pin = prompt('Entrez le code PIN conducteur pour ce trajet');
+      if(!pin){ return; }
+      API.ownerVerify({ ride_id: rideId, pin }).then(()=>{
+        OwnerAuth.verify(rideId);
+        reveal(phone);
+      }).catch(err=> toast(err.message||'Code PIN incorrect'));
+      return;
+    }
     const cancel = e.target.closest('.btn-cancel-req');
     if (!cancel) return;
     const rid = r.id;
