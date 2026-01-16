@@ -196,11 +196,21 @@ function refreshReqCounters(rideId){
     else { pend.classList.add('hidden'); pend.textContent=''; }
   }
 }
-function buildReqListHTML(rideId){ const items = cachedRequestsByRide(rideId); if (!items.length) return '<li class="card">Aucune demande</li>'; const me=Store.ensureDeviceId();
-  return items.map(x=>{ const mine = x.requester_device_id && x.requester_device_id===me; const badge = x.status==='PENDING'?'badge pending': x.status==='ACCEPTED'?'badge accepted':'badge refused';
+function buildReqListHTML(rideId){ const items = cachedRequestsByRide(rideId); const me=Store.ensureDeviceId();
+  const accepted = items.filter(x=> x.status==='ACCEPTED');
+  const pending = items.filter(x=> x.status==='PENDING');
+  const renderItem = (x)=>{ const mine = x.requester_device_id && x.requester_device_id===me; const badge = x.status==='PENDING'?'badge pending': x.status==='ACCEPTED'?'badge accepted':'badge refused';
     const cancelBtn = (mine && x.status==='PENDING')? `<button type=\"button\" class=\"btn small btn-cancel-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Annuler</button>`: '';
     const ownerBtns = (x.status==='PENDING')? `<button type=\"button\" class=\"btn small primary btn-accept-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Accepter</button> <button type=\"button\" class=\"btn small danger btn-refuse-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Refuser</button>`: '';
-    return `<li class=\"card\"><div><strong>${x.passenger_name||x.passenger||''}</strong> • ${x.seats} place(s) <span class=\"${badge}\" style=\"margin-left:8px\">${statusLabelFR(x.status)}</span></div><div class=\"muted\">${x.message||''}</div><div class=\"cta-row\">${ownerBtns} ${cancelBtn}</div></li>`; }).join(''); }
+    return `<li class=\"card\"><div><strong>${x.passenger_name||x.passenger||''}</strong> • ${x.seats} place(s) <span class=\"${badge}\" style=\"margin-left:8px\">${statusLabelFR(x.status)}</span></div><div class=\"muted\">${x.message||''}</div><div class=\"cta-row\">${ownerBtns} ${cancelBtn}</div></li>`; };
+  let html = '';
+  // Section: Acceptés
+  html += `<li class=\"card\"><h4>Participants (acceptés)</h4></li>`;
+  if (accepted.length){ html += accepted.map(renderItem).join(''); } else { html += `<li class=\"card\"><div class=\"empty\">Aucun participant</div></li>`; }
+  // Section: En attente
+  html += `<li class=\"card\"><h4>En attente de validation</h4></li>`;
+  if (pending.length){ html += pending.map(renderItem).join(''); } else { html += `<li class=\"card\"><div class=\"empty\">Aucune demande en attente</div></li>`; }
+  return html; }
 
 // Router
 const routes = {
@@ -231,12 +241,12 @@ document.addEventListener('click', (e)=>{
 });
 
 // Components
-function rideCard(r){ const reqs = cachedRequestsByRide(r.id); const pCount = reqs.filter(x=>x.status==='PENDING').length; const aCount = reqs.filter(x=>x.status==='ACCEPTED').length; const left = seatsLeftFrom(r, reqs); const full = left<=0; return `<li class="card" data-ride="${r.id}">
+function rideCard(r){ const reqs = cachedRequestsByRide(r.id); const pCount = reqs.filter(x=>x.status==='PENDING').length; const aCount = reqs.filter(x=>x.status==='ACCEPTED').length; const left = seatsLeftFrom(r, reqs); const full = left<=0; const reqLabel = full ? 'Participants' : `Demandes (En attente:${pCount} / Acceptées:${aCount})`; return `<li class="card" data-ride="${r.id}">
   <div><strong>Lieu de départ:</strong> ${r.origin_text}</div>
   <div><strong>Heure de départ:</strong> ${fmtTimeHM(r.depart_at)}</div>
   <div><strong>Places disponibles:</strong> ${left}/${r.seats_total} ${full? '<span class="badge full">Complet</span>':''} <span id="pend-${r.id}" class="badge pending ${pCount>0? '' : 'hidden'}">${pCount>0? `${pCount} nouvelles` : ''}</span></div>
-  <div class="cta-row">${full? '<span class="badge full">Complet</span>' : `<a class="btn primary" href="#ride?id=${r.id}">Voir</a>
-    <button type="button" class="btn btn-reqs" data-ride="${r.id}">Demandes (En attente:${pCount} / Acceptées:${aCount})</button>`}
+  <div class="cta-row">${full? '<span class="badge full">Complet</span>' : ''} <a class="btn primary" href="#ride?id=${r.id}">Voir</a>
+    <button type="button" class="btn btn-reqs" data-ride="${r.id}">${reqLabel}</button>
   </div>
   <ul id="reqs-${r.id}" class="list hidden"></ul>
 </li>`; }
