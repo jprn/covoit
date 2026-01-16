@@ -233,7 +233,7 @@ document.addEventListener('click', (e)=>{
 // Components
 function rideCard(r){ const reqs = cachedRequestsByRide(r.id); const pCount = reqs.filter(x=>x.status==='PENDING').length; const aCount = reqs.filter(x=>x.status==='ACCEPTED').length; const left = seatsLeftFrom(r, reqs); const full = left<=0; return `<li class="card" data-ride="${r.id}">
   <div><strong>Lieu de départ:</strong> ${r.origin_text}</div>
-  <div><strong>Heure de départ:</strong> ${fmtTimeHM(r.depart_at)} • ${r.ride_type?.toUpperCase?.()||''}</div>
+  <div><strong>Heure de départ:</strong> ${fmtTimeHM(r.depart_at)} ||''}</div>
   <div><strong>Places disponibles:</strong> ${left}/${r.seats_total} ${full? '<span class="badge full">Complet</span>':''} <span id="pend-${r.id}" class="badge pending ${pCount>0? '' : 'hidden'}">${pCount>0? `${pCount} nouvelles` : ''}</span></div>
   <div class="cta-row">${full? '<span class="badge full">Complet</span>' : `<a class="btn primary" href="#ride?id=${r.id}">Voir</a>
     <button type="button" class="btn btn-reqs" data-ride="${r.id}">Demandes (En attente:${pCount} / Acceptées:${aCount})</button>`}
@@ -417,9 +417,9 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   await loadRequestsByRide(r.id);
   const leftNow = seatsLeftFrom(r, cachedRequestsByRide(r.id));
   box.innerHTML = `<h2>${r.origin_text} → ${Store.singleEvent().name} (${Store.singleEvent().city})</h2>
-  <div><strong>Heure de départ : </strong>${fmtDateTime(r.depart_at)} • ${r.ride_type.toUpperCase()}</div>
-  <div>Places restantes : ${leftNow}/${r.seats_total} ${leftNow<=0? '<span class="badge full">Complet</span>':''}</div>
-  <div>Conducteur: ${r.driver_name||r.driver||'Invité'} Tel : ${r.driver_phone}</div>
+  <div><strong>Heure de départ : </strong>${fmtDateTime(r.depart_at)}</div>
+  <div><strong>Places restantes : </strong>${leftNow}/${r.seats_total} ${leftNow<=0? '<span class="badge full">Complet</span>':''}</div>
+  <div><strong>Conducteur : </strong>${r.driver_name||r.driver||'Invité'} Tel : ${r.driver_phone}</div>
   <div class="cta-row"><button id="btn-edit-ride" class="btn">Modifier</button><button id="btn-delete-ride" class="btn danger">Supprimer</button></div>`;
   const modal=$('#req-modal',frag), btn=$('#btn-request',frag), form=$('#req-form',frag);
   const editModal=$('#edit-modal',frag), editForm=$('#edit-form',frag);
