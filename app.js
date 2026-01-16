@@ -314,9 +314,17 @@ async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.si
   sel.addEventListener('change', ()=>{ render().catch(()=>{}); }); chk.addEventListener('change', ()=>{ render().catch(()=>{}); });
   const btnRefresh = $('#btn-ev-refresh', frag);
   if (btnRefresh){ btnRefresh.addEventListener('click', async (e)=>{
-    if (e && (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey)) { await hardReload(); return; }
-    await loadEvent().catch(()=>{}); await render().catch(()=>{});
-    const c=$('#event-card'); if(c){ const ev2=Store.singleEvent(); const src2=Store.eventSource==='api'?'API':'local'; c.innerHTML = `<h2>${ev2.name}</h2><div class=\"muted\">Données: ${src2} • API: <code id=\\"api-base\\">${API_BASE}</code></div><div>${ev2.city} • ${new Date(ev2.date).toLocaleDateString()} • ${ev2.time_hint||''}</div><p>${ev2.desc||''}</p><div class=\"cta-row\"><button id=\"btn-ev-refresh\" class=\"btn\">Rafraîchir</button></div>`; }
+    e && e.preventDefault();
+    try{
+      // Info non bloquante pour l'utilisateur
+      try { toast('Nettoyage du cache et du stockage local…'); } catch {}
+      // Laisse le temps d'afficher le toast
+      await new Promise(r=> setTimeout(r, 700));
+      try { localStorage.clear(); } catch {}
+      try { sessionStorage.clear?.(); } catch {}
+      await hardReload();
+    } catch {}
+    return;
   }); }
   try { await render(); } catch { /* fallback to empty list already handled in loadRides */ }
   $('#page').append(frag);
