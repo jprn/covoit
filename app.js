@@ -37,7 +37,6 @@ const Store = {
     rides: [],
     ridesSource: 'demo',
     requestsByRide: new Map(),
-    myRequests: [],
   },
   ensureDeviceId(){
     if (this.deviceId) return this.deviceId;
@@ -93,10 +92,6 @@ const API = {
   },
   async listRequestsByRide(rideId){
     const data = await apiFetch(`/requests_list.php?ride_id=${encodeURIComponent(String(rideId))}`);
-    return data.requests || [];
-  },
-  async listMyRequests(deviceId){
-    const data = await apiFetch(`/requests_my.php?requester_device_id=${encodeURIComponent(String(deviceId))}`);
     return data.requests || [];
   },
   async createRequest(payload){
@@ -487,9 +482,9 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
     API.cancelRequest({ request_id: reqId, requester_device_id: Store.ensureDeviceId() }).then(async ()=>{
       toast('Demande annulée');
       await loadRequestsByRide(rid);
+      refreshReqCounters(rid);
       const ul = reqSection.querySelector('#ride-reqs-list');
       if (ul) ul.innerHTML = buildReqListHTML(rid);
-      refreshReqCounters(rid);
       const boxNow = document.getElementById('ride-details');
       const leftAfter = seatsLeftFrom(r, cachedRequestsByRide(rid));
       if (boxNow) {

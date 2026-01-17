@@ -20,19 +20,26 @@
       <div class="brand">
         <img class="brand-logo" src="assets/Logos/LogoOfrance.png" alt="O'France 2026" />
         <div class="brand-text">
-          <h1>Covoiturage</h1>
+          <div class="brand-title">
+            <h1>SportRide</h1>
+            <span class="brand-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3.5 13.5h17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <path d="M5.8 13.5l1.7-5.1c.2-.7.9-1.2 1.6-1.2h5.8c.7 0 1.4.5 1.6 1.2l1.7 5.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6.2 17.2a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2Zm11.6 0a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </div>
         </div>
-        <button id="nav-toggle" class="burger" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="tabbar">☰</button>
       </div>
     </header>
-    <nav id="tabbar" class="tabbar">
+    <main id="page" class="page"></main>
+    <nav class="tabbar">
       <a class="tab" data-tab="home" href="#home">Accueil</a>
       <a class="tab" data-tab="event" href="#event">Évènement</a>
       <a class="tab" data-tab="offer" href="#offer">Proposer</a>
       <a class="tab" data-tab="search" href="#search">Rechercher</a>
-      
     </nav>
-    <main id="page" class="page"></main>
     <div id="toast" class="toast hidden"></div>
   </template>
 
