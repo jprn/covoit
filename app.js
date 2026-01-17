@@ -344,11 +344,8 @@ async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.si
         opt.textContent = `${x.name}${x.city ? ' – ' + x.city : ''}`;
         selEv.appendChild(opt);
       });
-      if (events.length === 1){
-        wrapEv.classList.add('hidden');
-      } else {
-        wrapEv.classList.remove('hidden');
-      }
+      wrapEv.classList.remove('hidden');
+      selEv.disabled = events.length <= 1;
       const current = Store.singleEvent()?.id;
       if (current) selEv.value = String(current);
     }catch{
@@ -357,7 +354,8 @@ async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.si
       if (!cur || !cur.id) return;
       selEv.innerHTML = `<option value="${String(cur.id)}">${cur.name}${cur.city ? ' – ' + cur.city : ''}</option>`;
       selEv.value = String(cur.id);
-      wrapEv.classList.add('hidden');
+      wrapEv.classList.remove('hidden');
+      selEv.disabled = true;
     }
   })();
 
