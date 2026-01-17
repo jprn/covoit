@@ -181,6 +181,8 @@ html,body{
   body.nav-open .impactbar{display:none}
 
   .form-row{grid-template-columns:1fr;gap:0}
+  /* Ensure content sits below fixed topbar on small screens where tabbar is hidden */
+  .page{padding:120px 12px 20px}
 }
 
 @media (max-width: 380px){
