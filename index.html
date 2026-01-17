@@ -38,6 +38,7 @@
       <a class="tab" data-tab="event" href="#event">Évènement</a>
       <a class="tab" data-tab="offer" href="#offer">Proposer</a>
       <a class="tab" data-tab="search" href="#search">Rechercher</a>
+      <a class="tab" data-tab="help" href="#help">Aide</a>
     </nav>
     <main id="page" class="page"></main>
     <div id="toast" class="toast hidden"></div>
@@ -201,6 +202,44 @@
             </div>
           </form>
         </div>
+      </div>
+    </section>
+  </template>
+
+  <template id="tpl-help">
+    <section>
+      <h2>Aide</h2>
+      <div class="card">
+        <h3>Présentation</h3>
+        <p>Cette application vous permet de proposer ou de rechercher des trajets de covoiturage pour un évènement.</p>
+      </div>
+      <div class="card">
+        <h3>Proposer un trajet</h3>
+        <ol>
+          <li>Allez dans l’onglet « Proposer ».</li>
+          <li>Renseignez les informations du trajet et vos coordonnées.</li>
+          <li>Un code PIN conducteur vous sera demandé plus tard pour modifier/supprimer le trajet.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>Rechercher et rejoindre un trajet</h3>
+        <ol>
+          <li>Allez dans l’onglet « Rechercher ».</li>
+          <li>Filtrez selon vos critères, puis ouvrez un trajet.</li>
+          <li>Cliquez « Demander à rejoindre » et indiquez vos coordonnées.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>PIN conducteur</h3>
+        <p>Le PIN est requis pour les actions sensibles (accepter/refuser des demandes, modifier/supprimer un trajet, afficher un numéro de téléphone). Il n’est pas mémorisé sur l’appareil.</p>
+      </div>
+      <div class="card">
+        <h3>Afficher le téléphone d’un participant</h3>
+        <p>Sur les participants acceptés, cliquez sur l’icône 📞. Le numéro est masqué par défaut et s’affiche après vérification du PIN du trajet.</p>
+      </div>
+      <div class="card">
+        <h3>Rafraîchir les données</h3>
+        <p>Dans la page « Évènement », le bouton « Rafraîchir » met à jour les trajets et nettoie le cache/localStorage si nécessaire.</p>
       </div>
     </section>
   </template>

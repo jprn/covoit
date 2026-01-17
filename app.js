@@ -281,6 +281,7 @@ const routes = {
   '#offer': renderOffer,
   '#search': renderSearch,
   '#ride': renderRide,
+  '#help': renderHelp,
 };
 
 function mountLayout(){ const root=$('#app'); root.innerHTML=''; root.append($('#tpl-layout').content.cloneNode(true)); }
@@ -315,6 +316,8 @@ function rideCard(r){ const reqs = cachedRequestsByRide(r.id); const pCount = re
 
 // Views
 async function renderHome(){ const frag=$('#tpl-home').content.cloneNode(true); $('#page').append(frag); }
+
+async function renderHelp(){ const frag=$('#tpl-help').content.cloneNode(true); $('#page').append(frag); }
 
 async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.singleEvent(); const frag=$('#tpl-event').content.cloneNode(true); const card=$('#event-card',frag);
   const selEv = $('#ev-event', frag);
