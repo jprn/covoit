@@ -346,6 +346,7 @@ async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.si
         toast('Demande annulée');
         await loadRequestsByRide(rideId);
         refreshReqCounters(rideId);
+        refreshImpact().catch(()=>{});
         const ul=document.getElementById(`reqs-${rideId}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(rideId); }
         await render();
       }).catch(err=> toast(err.message||'Erreur'));
@@ -361,6 +362,7 @@ async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.si
         toast('Demande acceptée');
         await loadRequestsByRide(rideId);
         refreshReqCounters(rideId);
+        refreshImpact().catch(()=>{});
         const ul=document.getElementById(`reqs-${rideId}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(rideId); }
         await render();
       }).catch(err=> toast(err.message||'Erreur'));
@@ -410,6 +412,7 @@ async function renderOffer(){ const frag=$('#tpl-offer').content.cloneNode(true)
     if (!selEv) return;
     try{
       const events = await API.listEvents();
+      if (!events.length) throw new Error('No events');
       selEv.innerHTML = '';
       events.forEach(ev=>{
         const opt = document.createElement('option');
@@ -582,6 +585,7 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
       toast('Demande annulée');
       await loadRequestsByRide(rid);
       refreshReqCounters(rid);
+      refreshImpact().catch(()=>{});
       const ul = reqSection.querySelector('#ride-reqs-list');
       if (ul) ul.innerHTML = buildReqListHTML(rid);
       const boxNow = document.getElementById('ride-details');
@@ -699,6 +703,7 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
         await loadRequestsByRide(r.id);
         const ul=reqSection.querySelector('#ride-reqs-list'); if(ul) ul.innerHTML = buildReqListHTML(r.id);
         refreshReqCounters(r.id);
+        refreshImpact().catch(()=>{});
         const leftAfter = seatsLeftFrom(r, cachedRequestsByRide(r.id));
         if (leftAfter<=0){ btn.classList.add('disabled'); btn.setAttribute('disabled','disabled'); }
       }).catch(err=> toast(err.message||'Erreur'));
@@ -714,6 +719,7 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
         await loadRequestsByRide(r.id);
         const ul=reqSection.querySelector('#ride-reqs-list'); if(ul) ul.innerHTML = buildReqListHTML(r.id);
         refreshReqCounters(r.id);
+        refreshImpact().catch(()=>{});
       }).catch(err=> toast(err.message||'Erreur'));
     }
   });
@@ -730,6 +736,7 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
       await loadRequestsByRide(r.id);
       const ul=reqSection.querySelector('#ride-reqs-list'); if(ul) ul.innerHTML = buildReqListHTML(r.id);
       refreshReqCounters(r.id);
+      refreshImpact().catch(()=>{});
       const leftAfter = seatsLeftFrom(r, cachedRequestsByRide(r.id));
       const boxNow = document.getElementById('ride-details');
       if (boxNow) {

@@ -91,15 +91,19 @@
     <section>
       <h2>Proposer un trajet</h2>
       <form class="form" id="offer-form" novalidate>
-        <label>Évènement
-          <select name="event_id" id="offer-event" required></select>
-        </label>
-        <label>Type
-          <select name="ride_type" required>
-            <option value="go">Aller</option>
-            <option value="return">Retour</option>
-          </select>
-        </label>
+        <div class="form-row">
+          <label>Évènement
+            <select name="event_id" id="offer-event" required>
+              <option value="">Chargement…</option>
+            </select>
+          </label>
+          <label>Type
+            <select name="ride_type" required>
+              <option value="go">Aller</option>
+              <option value="return">Retour</option>
+            </select>
+          </label>
+        </div>
         <label>Date et heure de départ
           <input type="datetime-local" name="depart_at" required />
         </label>

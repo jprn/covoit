@@ -104,9 +104,10 @@ html,body{
   display:flex;
   gap:10px;
   align-items:center;
+  flex-wrap:nowrap;
 }
 .impact{
-  min-width:140px;
+  min-width:170px;
   background:var(--card);
   border:1px solid rgba(16,49,42,.12);
   border-radius:16px;
@@ -115,7 +116,7 @@ html,body{
   text-align:center;
 }
 .impact-value{
-  font-size:28px;
+  font-size:34px;
   font-weight:900;
   letter-spacing:.5px;
   color:var(--primary-2);
@@ -150,10 +151,12 @@ html,body{
   .topbar{z-index:9}
 
   .impactbar{gap:8px}
-  .impact{min-width:120px;padding:8px 10px}
-  .impact-value{font-size:22px}
+  .impact{min-width:140px;padding:10px 12px}
+  .impact-value{font-size:28px}
   .impact-label{font-size:12px;margin-top:4px}
   body.nav-open .impactbar{display:none}
+
+  .form-row{grid-template-columns:1fr;gap:0}
 }
 
 h1,h2,h3{margin:10px 0}
@@ -219,6 +222,7 @@ h3{font-size:18px;color:var(--primary-2)}
 .cta-row .btn.primary:hover{background:#e56f23}
 
 .form label{display:block;margin:10px 0;font-weight:600;color:var(--muted)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end}
 .form input,.form select,.form textarea{
   width:100%;
   padding:12px 12px;
@@ -227,7 +231,7 @@ h3{font-size:18px;color:var(--primary-2)}
   background:#fff;
   color:var(--text);
   box-shadow:0 1px 0 rgba(16,49,42,.03);
-  font-size:16px;
+  font-size:18px;
   line-height:1.3;
   transition:box-shadow .2s ease, transform .1s ease, border-color .15s ease;
 }

@@ -10,7 +10,7 @@ require_method('GET');
 try {
     $pdo = require __DIR__ . '/db.php';
 
-    $stmt = $pdo->query('SELECT id, name, city, date, time_hint, `desc` FROM events ORDER BY date ASC, id ASC');
+    $stmt = $pdo->query('SELECT id, name, city, date, time_hint FROM events ORDER BY date ASC, id ASC');
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $events = array_map(static function ($r) {
@@ -20,7 +20,6 @@ try {
             'city' => (string)($r['city'] ?? ''),
             'date' => (string)($r['date'] ?? ''),
             'time_hint' => (string)($r['time_hint'] ?? ''),
-            'desc' => (string)($r['desc'] ?? ''),
         ];
     }, $rows);
 
