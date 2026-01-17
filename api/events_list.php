@@ -10,7 +10,22 @@ require_method('GET');
 try {
     $pdo = require __DIR__ . '/db.php';
 
-    $stmt = $pdo->query('SELECT id, name, city, date, time_hint FROM events ORDER BY date ASC, id ASC');
+    $cols = $pdo->query('SHOW COLUMNS FROM events')->fetchAll(PDO::FETCH_COLUMN, 0);
+    $hasCity = in_array('city', $cols, true);
+    $hasDate = in_array('date', $cols, true);
+    $hasTimeHint = in_array('time_hint', $cols, true);
+
+    $selectParts = [
+        'id',
+        'name',
+        ($hasCity ? 'city' : "'' AS city"),
+        ($hasDate ? 'date' : "'' AS date"),
+        ($hasTimeHint ? 'time_hint' : "'' AS time_hint"),
+    ];
+    $select = implode(', ', $selectParts);
+    $orderBy = $hasDate ? 'date ASC, id ASC' : 'id ASC';
+
+    $stmt = $pdo->query("SELECT {$select} FROM events ORDER BY {$orderBy}");
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $events = array_map(static function ($r) {
