@@ -346,7 +346,16 @@ async function renderHelp(){
       e.preventDefault();
       const id = String(a.getAttribute('href')||'').slice(1);
       const target = document.getElementById(id);
-      if (target){ try{ target.scrollIntoView({ behavior:'smooth', block:'start' }); }catch{ target.scrollIntoView(); } }
+      if (target){
+        const topbar = document.querySelector('.topbar');
+        const tabbar = document.querySelector('.tabbar');
+        const tbH = topbar ? topbar.getBoundingClientRect().height : 0;
+        const tabsH = tabbar ? tabbar.getBoundingClientRect().height : 0;
+        const offset = Math.max(0, Math.round(tbH + tabsH + 12));
+        const targetTop = window.pageYOffset + target.getBoundingClientRect().top - offset;
+        try{ window.scrollTo({ top: targetTop, behavior:'smooth' }); }
+        catch{ window.scrollTo(0, targetTop); }
+      }
     });
   }
 }
