@@ -5,7 +5,11 @@ const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 
 const LS_OWNER_VERIF = 'sportride_owner_verif_v1';
 const LS_DEVICE_ID = 'sportride_device_id_v1';
+const LS_APP_VERSION = 'sportride_app_version_v1';
 const QS = new URLSearchParams(location.search);
+
+// Bump this on each deploy to force cache purge
+const APP_VERSION = '2026-01-17-1';
 
 // Force hard reload: unregister SW, clear Cache Storage, then reload with cache-busting param
 async function hardReload(){
@@ -27,6 +31,17 @@ async function hardReload(){
   // Remove any hard flag to avoid loop
   url.searchParams.delete('hard');
   location.replace(url.toString());
+}
+
+async function ensureFreshAssets(){
+  try{
+    const prev = localStorage.getItem(LS_APP_VERSION);
+    if (prev !== APP_VERSION){
+      localStorage.setItem(LS_APP_VERSION, APP_VERSION);
+      // If your host or a SW serves stale HTML/JS, this forces a purge + reload
+      await hardReload();
+    }
+  }catch{}
 }
 
 const Store = {
@@ -757,6 +772,7 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
 function setActiveFromHash(){ const base=(location.hash||'#home').split('?')[0]; $$('.tab').forEach(t=> t.classList.toggle('active', t.getAttribute('href')===base)); }
 window.addEventListener('hashchange', setActiveFromHash);
 (async ()=>{
+  await ensureFreshAssets();
   await loadEvent();
   await router();
   setActiveFromHash();
