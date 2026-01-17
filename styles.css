@@ -60,6 +60,21 @@ html,body{
 }
 .topbar h1{margin:0;font-size:28px;letter-spacing:.25px;color:var(--primary-2);line-height:1.1}
 
+.burger{
+  margin-left:auto;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  width:48px;
+  height:48px;
+  border-radius:12px;
+  border:1px solid rgba(16,49,42,.14);
+  background:#fff;
+  color:var(--primary-2);
+  font-size:22px;
+  cursor:pointer;
+}
+
 .tabbar{
   position:sticky;
   top:82px;
@@ -83,6 +98,28 @@ html,body{
   background:transparent;
 }
 .tab.active{background:#fff;color:var(--primary-2);box-shadow:inset 0 -3px 0 var(--accent)}
+
+@media (max-width: 760px){
+  .burger{display:inline-flex}
+  .tabbar{display:none}
+  body.nav-open .tabbar{
+    display:flex;
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    flex-direction:column;
+    justify-content:flex-start;
+    padding:108px 16px 16px;
+    gap:10px;
+    z-index:8;
+    border-bottom:none;
+  }
+  body.nav-open::after{content:"";position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:7}
+  body.nav-open{overflow:hidden}
+  .topbar{z-index:9}
+}
 
 h1,h2,h3{margin:10px 0}
 h2{font-size:26px;color:var(--primary-2)}
