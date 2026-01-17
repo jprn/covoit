@@ -200,14 +200,12 @@ function computeImpactFromCache(){
   return { passengers, vehiclesSaved };
 }
 async function refreshImpact(){
-  const elP = document.getElementById('impact-passengers');
   const elV = document.getElementById('impact-vehicles');
-  if (!elP || !elV) return;
+  if (!elV) return;
   const now = Date.now();
   if (_impactLoading) return;
   if (now - _impactLastTs < 1500){
     const c = computeImpactFromCache();
-    elP.textContent = String(c.passengers);
     elV.textContent = String(c.vehiclesSaved);
     return;
   }
@@ -216,10 +214,13 @@ async function refreshImpact(){
     const rides = await loadRides();
     await Promise.all(rides.map(r=> loadRequestsByRide(r.id).catch(()=>[])));
     const c = computeImpactFromCache();
-    elP.textContent = String(c.passengers);
     elV.textContent = String(c.vehiclesSaved);
     _impactLastTs = Date.now();
-  } finally {
+  }catch{
+    // best-effort fallback from cache
+    const c = computeImpactFromCache();
+    elV.textContent = String(c.vehiclesSaved);
+  }finally{
     _impactLoading = false;
   }
 }

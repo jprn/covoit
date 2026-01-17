@@ -101,7 +101,7 @@ html,body{
 .impact{
   min-width:170px;
   background:var(--card);
-  border:1px solid rgba(16,49,42,.12);
+  border:1px solid transparent;
   border-radius:16px;
   padding:10px 12px;
   box-shadow:0 10px 26px rgba(16,49,42,.06);
@@ -113,17 +113,17 @@ html,body{
 .impact::before{
   content:"";
   position:absolute;
-  inset:-2px;
-  border-radius:18px;
-  background:conic-gradient(from 0deg, var(--accent), var(--cta), var(--primary), var(--accent));
+  inset:-4px;
+  border-radius:20px;
+  background:conic-gradient(from 0deg, var(--accent), #ff4fb3, var(--cta), #ffd35a, var(--primary), var(--accent));
   animation:spinBorder 3.2s linear infinite;
   z-index:0;
 }
 .impact::after{
   content:"";
   position:absolute;
-  inset:2px;
-  border-radius:14px;
+  inset:4px;
+  border-radius:12px;
   background:var(--card);
   z-index:1;
 }
