@@ -287,17 +287,21 @@ const routes = {
 let _btBound=false;
 function mountLayout(){ const root=$('#app'); root.innerHTML=''; root.append($('#tpl-layout').content.cloneNode(true));
   const btn=document.getElementById('back-to-top');
+  const updateBackToTop = ()=>{
+    const b=document.getElementById('back-to-top'); if(!b) return;
+    const y = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+    const show = y > 240;
+    b.classList.toggle('hidden', !show);
+  };
   if (btn){
     btn.addEventListener('click', (e)=>{ e.preventDefault(); try{ window.scrollTo({ top:0, behavior:'smooth' }); }catch{ window.scrollTo(0,0); } });
   }
   if(!_btBound){
     _btBound=true;
-    window.addEventListener('scroll', ()=>{
-      const b=document.getElementById('back-to-top'); if(!b) return;
-      const show = window.scrollY > 240;
-      b.classList.toggle('hidden', !show);
-    }, { passive:true });
+    window.addEventListener('scroll', updateBackToTop, { passive:true });
   }
+  // Ensure correct visibility on first render
+  updateBackToTop();
 }
 async function router(){
   mountLayout();
