@@ -351,7 +351,11 @@ async function renderHelp(){
         const tabbar = document.querySelector('.tabbar');
         const tbH = topbar ? topbar.getBoundingClientRect().height : 0;
         const tabsH = tabbar ? tabbar.getBoundingClientRect().height : 0;
-        const offset = Math.max(0, Math.round(tbH + tabsH + 20));
+        // Also consider the top padding of the page for mobile where we reserved space in CSS
+        const page = document.getElementById('page');
+        const padTop = page ? parseInt(getComputedStyle(page).paddingTop||'0',10) : 0;
+        const headerOffset = Math.max(0, Math.round(tbH + tabsH));
+        const offset = Math.max(headerOffset, padTop);
         const targetTop = window.pageYOffset + target.getBoundingClientRect().top - offset;
         try{ window.scrollTo({ top: targetTop, behavior:'smooth' }); }
         catch{ window.scrollTo(0, targetTop); }
@@ -361,7 +365,10 @@ async function renderHelp(){
           const tabbar2 = document.querySelector('.tabbar');
           const tbH2 = topbar2 ? topbar2.getBoundingClientRect().height : 0;
           const tabsH2 = tabbar2 ? tabbar2.getBoundingClientRect().height : 0;
-          const offset2 = Math.max(0, Math.round(tbH2 + tabsH2 + 20));
+          const page2 = document.getElementById('page');
+          const padTop2 = page2 ? parseInt(getComputedStyle(page2).paddingTop||'0',10) : 0;
+          const headerOffset2 = Math.max(0, Math.round(tbH2 + tabsH2));
+          const offset2 = Math.max(headerOffset2, padTop2);
           const newTop = window.pageYOffset + target.getBoundingClientRect().top - offset2;
           if (Math.abs(newTop - window.pageYOffset) > 4){
             try{ window.scrollTo({ top: newTop, behavior:'smooth' }); }
