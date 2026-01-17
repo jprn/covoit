@@ -337,7 +337,10 @@ fieldset{border:1px solid rgba(16,49,42,.14);border-radius:14px;padding:12px;mar
   border-radius:12px;
   font-size:20px;
   line-height:1;
+  background:var(--cta);
+  border:1px solid rgba(0,0,0,.08);
+  color:#fff;
   box-shadow:0 10px 26px rgba(16,49,42,.18);
 }
-.back-to-top:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(16,49,42,.28)}
+.back-to-top:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(16,49,42,.28);background:#e56f23}
 
