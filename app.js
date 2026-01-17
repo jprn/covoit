@@ -303,7 +303,7 @@ document.addEventListener('click', (e)=>{
 });
 
 // Components
-function rideCard(r){ const reqs = cachedRequestsByRide(r.id); const pCount = reqs.filter(x=>x.status==='PENDING').length; const aCount = reqs.filter(x=>x.status==='ACCEPTED').length; const left = seatsLeftFrom(r, reqs); const full = left<=0; const reqLabel = full ? 'Participants' : `Demandes (En attente:${pCount} / Acceptées:${aCount})`; return `<li class="card" data-ride="${r.id}">
+function rideCard(r){ const reqs = cachedRequestsByRide(r.id); const pCount = reqs.filter(x=>x.status==='PENDING').length; const aCount = reqs.filter(x=>x.status==='ACCEPTED').length; const left = seatsLeftFrom(r, reqs); const full = left<=0; const reqLabel = full ? 'Participants' : `Demandes (En attente:${pCount} / Acceptées:${aCount})`; const cls = full ? 'ride-full' : 'ride-open'; return `<li class="card ${cls}" data-ride="${r.id}">
   <div><strong>Lieu de départ:</strong> ${r.origin_text}</div>
   <div><strong>Heure de départ:</strong> ${fmtTimeHM(r.depart_at)}</div>
   <div><strong>Places disponibles:</strong> ${left}/${r.seats_total} ${full? '<span class="badge full">Complet</span>':''} <span id="pend-${r.id}" class="badge pending ${pCount>0? '' : 'hidden'}">${pCount>0? `${pCount} nouvelles` : ''}</span></div>
@@ -317,13 +317,50 @@ function rideCard(r){ const reqs = cachedRequestsByRide(r.id); const pCount = re
 async function renderHome(){ const frag=$('#tpl-home').content.cloneNode(true); $('#page').append(frag); }
 
 async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.singleEvent(); const frag=$('#tpl-event').content.cloneNode(true); const card=$('#event-card',frag);
-  const src = Store.eventSource==='api'? 'API' : 'local';
-  card.innerHTML = `<h2>${ev.name}</h2>
-  <div>${ev.city} • ${new Date(ev.date).toLocaleDateString()} • ${ev.time_hint||''}</div>
-  <p>${ev.desc||''}</p>
+  const selEv = $('#ev-event', frag);
+  const wrapEv = $('#ev-event-wrap', frag);
+
+  const renderEventCard = (e)=>{
+    card.innerHTML = `<h2>${e.name}</h2>
+  <div>${e.city} • ${new Date(e.date).toLocaleDateString()} • ${e.time_hint||''}</div>
+  <p>${e.desc||''}</p>
   <div class="cta-row">
     <button id="btn-ev-refresh" class="btn">Rafraîchir</button>
   </div>`;
+  };
+
+  renderEventCard(ev);
+
+  // Populate event selector (only shown if > 1 event)
+  (async ()=>{
+    if (!selEv || !wrapEv) return;
+    try{
+      const events = await API.listEvents();
+      if (!events.length) throw new Error('No events');
+      selEv.innerHTML = '';
+      events.forEach(x=>{
+        const opt = document.createElement('option');
+        opt.value = String(x.id);
+        opt.textContent = `${x.name}${x.city ? ' – ' + x.city : ''}`;
+        selEv.appendChild(opt);
+      });
+      if (events.length === 1){
+        wrapEv.classList.add('hidden');
+      } else {
+        wrapEv.classList.remove('hidden');
+      }
+      const current = Store.singleEvent()?.id;
+      if (current) selEv.value = String(current);
+    }catch{
+      // Keep current event only
+      const cur = Store.singleEvent();
+      if (!cur || !cur.id) return;
+      selEv.innerHTML = `<option value="${String(cur.id)}">${cur.name}${cur.city ? ' – ' + cur.city : ''}</option>`;
+      selEv.value = String(cur.id);
+      wrapEv.classList.add('hidden');
+    }
+  })();
+
   const list=$('#ev-rides',frag), empty=$('#ev-empty',frag), sel=$('#ev-filter-type',frag), chk=$('#ev-only-available',frag);
   async function render(){
     const all = await loadRides();
@@ -336,6 +373,38 @@ async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.si
     empty.classList.toggle('hidden', rides.length>0);
     rides.forEach(r=>{ list.insertAdjacentHTML('beforeend', rideCard(r)); });
   }
+
+  // Change current event
+  if (selEv){
+    selEv.addEventListener('change', async ()=>{
+      const id = Number(selEv.value || 0);
+      if (!id) return;
+      try{
+        const ne = await API.getEvent(id);
+        if (ne && ne.id){ Store.event = ne; Store.eventSource = 'api'; }
+      }catch{
+        // If API fails, keep existing Store.event
+      }
+      renderEventCard(Store.singleEvent());
+      await render();
+      refreshImpact().catch(()=>{});
+    });
+  }
+
+  // Refresh current event + rides
+  frag.addEventListener('click', async (e)=>{
+    const b = e.target.closest('#btn-ev-refresh');
+    if (!b) return;
+    const id = (selEv && selEv.value) ? Number(selEv.value) : (Store.singleEvent()?.id||0);
+    try{
+      const ne = await API.getEvent(id || undefined);
+      if (ne && ne.id){ Store.event = ne; Store.eventSource = 'api'; }
+    }catch{}
+    renderEventCard(Store.singleEvent());
+    await render();
+    refreshImpact().catch(()=>{});
+  });
+
   // Delegated interactions: toggle requests list and cancel/accept/refuse (with PIN if needed)
   list.addEventListener('click', (e)=>{
     const btn = e.target.closest('.btn-reqs');

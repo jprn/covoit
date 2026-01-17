@@ -203,6 +203,11 @@ h3{font-size:18px;color:var(--primary-2)}
 }
 .card:hover{transform:translateY(-6px);box-shadow:0 28px 60px rgba(16,49,42,.18)}
 
+.card.ride-open{background:rgba(46, 204, 113, .14);border-color:rgba(46, 204, 113, .28)}
+.card.ride-full{background:rgba(231, 76, 60, .14);border-color:rgba(231, 76, 60, .30)}
+.card.ride-open:hover{box-shadow:0 28px 60px rgba(16,49,42,.18), 0 12px 30px rgba(46, 204, 113, .18)}
+.card.ride-full:hover{box-shadow:0 28px 60px rgba(16,49,42,.18), 0 12px 30px rgba(231, 76, 60, .18)}
+
 .list{list-style:none;margin:0;padding:0}
 .list .card{margin-bottom:12px}
 
