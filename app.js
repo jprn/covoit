@@ -317,7 +317,21 @@ function rideCard(r){ const reqs = cachedRequestsByRide(r.id); const pCount = re
 // Views
 async function renderHome(){ const frag=$('#tpl-home').content.cloneNode(true); $('#page').append(frag); }
 
-async function renderHelp(){ const frag=$('#tpl-help').content.cloneNode(true); $('#page').append(frag); }
+async function renderHelp(){
+  const frag=$('#tpl-help').content.cloneNode(true);
+  $('#page').append(frag);
+  const pageEl = $('#page');
+  if (pageEl){
+    pageEl.addEventListener('click', (e)=>{
+      const a = e.target.closest('a[href^="#help-"]');
+      if (!a) return;
+      e.preventDefault();
+      const id = String(a.getAttribute('href')||'').slice(1);
+      const target = document.getElementById(id);
+      if (target){ try{ target.scrollIntoView({ behavior:'smooth', block:'start' }); }catch{ target.scrollIntoView(); } }
+    });
+  }
+}
 
 async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.singleEvent(); const frag=$('#tpl-event').content.cloneNode(true); const card=$('#event-card',frag);
   const selEv = $('#ev-event', frag);
