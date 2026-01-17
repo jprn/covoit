@@ -31,6 +31,16 @@
             </span>
           </div>
         </div>
+        <div class="impactbar" aria-label="Impact du covoiturage">
+          <div class="impact">
+            <div class="impact-value" id="impact-passengers">0</div>
+            <div class="impact-label">Passagers</div>
+          </div>
+          <div class="impact">
+            <div class="impact-value" id="impact-vehicles">0</div>
+            <div class="impact-label">Véhicules évités</div>
+          </div>
+        </div>
         <button id="nav-toggle" class="burger" type="button" aria-label="Menu" aria-expanded="false">☰</button>
       </div>
     </header>
@@ -81,6 +91,9 @@
     <section>
       <h2>Proposer un trajet</h2>
       <form class="form" id="offer-form" novalidate>
+        <label>Évènement
+          <select name="event_id" id="offer-event" required></select>
+        </label>
         <label>Type
           <select name="ride_type" required>
             <option value="go">Aller</option>

@@ -99,6 +99,35 @@ html,body{
 }
 .tab.active{background:#fff;color:var(--primary-2);box-shadow:inset 0 -3px 0 var(--accent)}
 
+.impactbar{
+  margin-left:auto;
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.impact{
+  min-width:140px;
+  background:var(--card);
+  border:1px solid rgba(16,49,42,.12);
+  border-radius:16px;
+  padding:10px 12px;
+  box-shadow:0 10px 26px rgba(16,49,42,.06);
+  text-align:center;
+}
+.impact-value{
+  font-size:28px;
+  font-weight:900;
+  letter-spacing:.5px;
+  color:var(--primary-2);
+  line-height:1;
+}
+.impact-label{
+  margin-top:6px;
+  font-weight:700;
+  color:var(--muted);
+  font-size:13px;
+}
+
 @media (max-width: 760px){
   .burger{display:inline-flex}
   .tabbar{display:none}
@@ -119,6 +148,12 @@ html,body{
   body.nav-open::after{content:"";position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:7}
   body.nav-open{overflow:hidden}
   .topbar{z-index:9}
+
+  .impactbar{gap:8px}
+  .impact{min-width:120px;padding:8px 10px}
+  .impact-value{font-size:22px}
+  .impact-label{font-size:12px;margin-top:4px}
+  body.nav-open .impactbar{display:none}
 }
 
 h1,h2,h3{margin:10px 0}

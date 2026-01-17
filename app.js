@@ -77,6 +77,10 @@ const API = {
     const data = await apiFetch(`/health.php`);
     return data;
   },
+  async listEvents(){
+    const data = await apiFetch(`/events_list.php`);
+    return data.events || [];
+  },
   async getEvent(id){
     const qs = id ? `?id=${encodeURIComponent(String(id))}` : '';
     const data = await apiFetch(`/event_get.php${qs}`);
@@ -180,6 +184,46 @@ function statusLabelFR(s){
 }
 function toast(msg){ const t=$('#toast'); if(!t){ alert(msg); return; } t.textContent=msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),2000); }
 
+let _impactLoading = false;
+let _impactLastTs = 0;
+function computeImpactFromCache(){
+  let passengers = 0;
+  let vehiclesSaved = 0;
+  for (const items of Store.cache.requestsByRide.values()){
+    for (const r of items){
+      if (r.status === 'ACCEPTED'){
+        passengers += Number(r.seats || 0);
+        vehiclesSaved += 1;
+      }
+    }
+  }
+  return { passengers, vehiclesSaved };
+}
+async function refreshImpact(){
+  const elP = document.getElementById('impact-passengers');
+  const elV = document.getElementById('impact-vehicles');
+  if (!elP || !elV) return;
+  const now = Date.now();
+  if (_impactLoading) return;
+  if (now - _impactLastTs < 1500){
+    const c = computeImpactFromCache();
+    elP.textContent = String(c.passengers);
+    elV.textContent = String(c.vehiclesSaved);
+    return;
+  }
+  _impactLoading = true;
+  try{
+    const rides = await loadRides();
+    await Promise.all(rides.map(r=> loadRequestsByRide(r.id).catch(()=>[])));
+    const c = computeImpactFromCache();
+    elP.textContent = String(c.passengers);
+    elV.textContent = String(c.vehiclesSaved);
+    _impactLastTs = Date.now();
+  } finally {
+    _impactLoading = false;
+  }
+}
+
 // Helpers for requests display/counters
 function reqCounts(rideId){ const items = cachedRequestsByRide(rideId); return { pending: items.filter(x=>x.status==='PENDING').length, accepted: items.filter(x=>x.status==='ACCEPTED').length }; }
 function refreshReqCounters(rideId){
@@ -226,6 +270,7 @@ const routes = {
 function mountLayout(){ const root=$('#app'); root.innerHTML=''; root.append($('#tpl-layout').content.cloneNode(true)); }
 async function router(){
   mountLayout();
+  refreshImpact().catch(()=>{});
   // ensure mobile nav is closed when navigating
   document.body.classList.remove('nav-open'); const nb=document.getElementById('nav-toggle'); if(nb) nb.setAttribute('aria-expanded','false');
   const h=location.hash||'#home'; const [base, query]=h.split('?'); const params=new URLSearchParams(query||''); const view=routes[base]||renderHome; await view(params); setActive(base);
@@ -331,6 +376,7 @@ async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.si
         toast('Demande refusée');
         await loadRequestsByRide(rideId);
         refreshReqCounters(rideId);
+        refreshImpact().catch(()=>{});
         const ul=document.getElementById(`reqs-${rideId}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(rideId); }
         await render();
       }).catch(err=> toast(err.message||'Erreur'));
@@ -352,14 +398,45 @@ async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.si
     return;
   }); }
   try { await render(); } catch { /* fallback to empty list already handled in loadRides */ }
+  refreshImpact().catch(()=>{});
   $('#page').append(frag);
 }
 
 async function renderOffer(){ const frag=$('#tpl-offer').content.cloneNode(true); const form=$('#offer-form',frag), err=$('#offer-error',frag);
+  const selEv = $('#offer-event', frag);
+  const selEvLabel = selEv ? selEv.closest('label') : null;
+
+  (async ()=>{
+    if (!selEv) return;
+    try{
+      const events = await API.listEvents();
+      selEv.innerHTML = '';
+      events.forEach(ev=>{
+        const opt = document.createElement('option');
+        opt.value = String(ev.id);
+        opt.textContent = `${ev.name}${ev.city ? ' – ' + ev.city : ''}`;
+        selEv.appendChild(opt);
+      });
+      if (events.length === 1){
+        selEv.value = String(events[0].id);
+        if (selEvLabel) selEvLabel.classList.add('hidden');
+      } else {
+        const current = Store.singleEvent()?.id;
+        if (current) selEv.value = String(current);
+      }
+    }catch{
+      const ev = Store.singleEvent();
+      if (!ev || !ev.id) return;
+      selEv.innerHTML = `<option value="${String(ev.id)}">${ev.name}${ev.city ? ' – ' + ev.city : ''}</option>`;
+      selEv.value = String(ev.id);
+      if (selEvLabel) selEvLabel.classList.add('hidden');
+    }
+  })();
+
   form.addEventListener('submit',(e)=>{ e.preventDefault(); err.textContent=''; const fd=new FormData(form); const p=Object.fromEntries(fd.entries());
-    const required=[['ride_type','Type'],['depart_at','Date/heure'],['origin','Départ'],['seats','Places'],['nickname','Pseudo'],['phone','Téléphone']];
+    const required=[['event_id','Évènement'],['ride_type','Type'],['depart_at','Date/heure'],['origin','Départ'],['seats','Places'],['nickname','Pseudo'],['phone','Téléphone']];
     for(const [k,label] of required){ if(!p[k]||String(p[k]).trim()===''){ err.textContent=`${label} est requis`; form.querySelector(`[name="${k}"]`).focus(); return; }}
-    const payload={ event_id:Store.singleEvent().id, ride_type:p.ride_type, depart_at:new Date(p.depart_at).toISOString(), origin_text:p.origin, seats_total:Number(p.seats), driver_name: p.nickname||'Invité', driver_phone: p.phone||'' };
+    const payload={ event_id:Number(p.event_id), ride_type:p.ride_type, depart_at:new Date(p.depart_at).toISOString(), origin_text:p.origin, seats_total:Number(p.seats), driver_name: p.nickname||'Invité', driver_phone: p.phone||'' };
     API.createRide(payload).then(async (resp)=>{
       const rideId = resp?.ride?.id;
       const pin = resp?.owner_pin;
@@ -368,6 +445,7 @@ async function renderOffer(){ const frag=$('#tpl-offer').content.cloneNode(true)
       toast(`Trajet publié. PIN conducteur: ${pin}`);
       alert(`Code PIN conducteur pour ce trajet: ${pin}\nConservez-le pour gérer les demandes depuis un autre appareil.`);
       await loadRides();
+      refreshImpact().catch(()=>{});
       location.hash = `#ride?id=${rideId}`;
     }).catch(err2=>{ err.textContent = err2.message || 'Erreur'; });
   });
@@ -378,6 +456,7 @@ async function renderSearch(){ const frag=$('#tpl-search').content.cloneNode(tru
   async function apply(){
     const all = await loadRides();
     await Promise.all(all.map(r=> loadRequestsByRide(r.id).catch(()=>[])));
+    refreshImpact().catch(()=>{});
     let r=[...all];
     if(sel.value && sel.value!=='any') r=r.filter(x=>x.ride_type===sel.value);
     if(city.value) r=r.filter(x=> x.origin_text.toLowerCase().includes(city.value.toLowerCase()));
@@ -393,6 +472,20 @@ async function renderSearch(){ const frag=$('#tpl-search').content.cloneNode(tru
   list.addEventListener('click', (e)=>{
     const btn = e.target.closest('.btn-reqs');
     if (btn){ const rid=Number(btn.getAttribute('data-ride')); const ul=document.getElementById(`reqs-${rid}`); if(!ul) return; if(!ul.classList.contains('hidden')){ ul.classList.add('hidden'); ul.innerHTML=''; return; } ul.innerHTML = buildReqListHTML(rid); ul.classList.remove('hidden'); return; }
+    const show = e.target.closest('.btn-show-phone');
+    if (show){
+      const rideId = Number(show.getAttribute('data-ride'));
+      const container = show.parentElement;
+      const span = container && container.querySelector('.phone-val, .muted');
+      const phone = show.getAttribute('data-phone') || (span && span.getAttribute('data-phone')) || '';
+      const reveal = (num)=>{ if (span){ span.textContent = num; span.classList.remove('muted'); span.classList.add('phone-val'); } show.remove(); };
+      const pin = prompt('Entrez le code PIN conducteur pour ce trajet');
+      if(!pin){ return; }
+      API.ownerVerify({ ride_id: rideId, pin }).then(()=>{
+        reveal(phone);
+      }).catch(err=> toast(err.message||'Code PIN incorrect'));
+      return;
+    }
     const cancel = e.target.closest('.btn-cancel-req');
     if (cancel){
       const id = Number(cancel.getAttribute('data-req'));
@@ -401,9 +494,11 @@ async function renderSearch(){ const frag=$('#tpl-search').content.cloneNode(tru
         toast('Demande annulée');
         await loadRequestsByRide(rideId);
         refreshReqCounters(rideId);
+        refreshImpact().catch(()=>{});
         const ul=document.getElementById(`reqs-${rideId}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(rideId); }
         await apply();
       }).catch(err=> toast(err.message||'Erreur'));
+      return;
     }
     const accept = e.target.closest('.btn-accept-req');
     if (accept){
@@ -416,9 +511,11 @@ async function renderSearch(){ const frag=$('#tpl-search').content.cloneNode(tru
         toast('Demande acceptée');
         await loadRequestsByRide(rideId);
         refreshReqCounters(rideId);
+        refreshImpact().catch(()=>{});
         const ul=document.getElementById(`reqs-${rideId}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(rideId); }
         await apply();
       }).catch(err=> toast(err.message||'Erreur'));
+      return;
     }
     const refuse = e.target.closest('.btn-refuse-req');
     if (refuse){
@@ -431,9 +528,11 @@ async function renderSearch(){ const frag=$('#tpl-search').content.cloneNode(tru
         toast('Demande refusée');
         await loadRequestsByRide(rideId);
         refreshReqCounters(rideId);
+        refreshImpact().catch(()=>{});
         const ul=document.getElementById(`reqs-${rideId}`); if(ul && !ul.classList.contains('hidden')){ ul.innerHTML = buildReqListHTML(rideId); }
         await apply();
       }).catch(err=> toast(err.message||'Erreur'));
+      return;
     }
   });
   const resetBtn = $('#search-reset',frag);
