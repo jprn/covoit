@@ -351,10 +351,23 @@ async function renderHelp(){
         const tabbar = document.querySelector('.tabbar');
         const tbH = topbar ? topbar.getBoundingClientRect().height : 0;
         const tabsH = tabbar ? tabbar.getBoundingClientRect().height : 0;
-        const offset = Math.max(0, Math.round(tbH + tabsH + 12));
+        const offset = Math.max(0, Math.round(tbH + tabsH + 16));
         const targetTop = window.pageYOffset + target.getBoundingClientRect().top - offset;
         try{ window.scrollTo({ top: targetTop, behavior:'smooth' }); }
         catch{ window.scrollTo(0, targetTop); }
+        // Safety pass: if header height changes during scroll (collapsing), re-align after a short delay
+        setTimeout(()=>{
+          const topbar2 = document.querySelector('.topbar');
+          const tabbar2 = document.querySelector('.tabbar');
+          const tbH2 = topbar2 ? topbar2.getBoundingClientRect().height : 0;
+          const tabsH2 = tabbar2 ? tabbar2.getBoundingClientRect().height : 0;
+          const offset2 = Math.max(0, Math.round(tbH2 + tabsH2 + 16));
+          const newTop = window.pageYOffset + target.getBoundingClientRect().top - offset2;
+          if (Math.abs(newTop - window.pageYOffset) > 4){
+            try{ window.scrollTo({ top: newTop, behavior:'smooth' }); }
+            catch{ window.scrollTo(0, newTop); }
+          }
+        }, 350);
       }
     });
   }
