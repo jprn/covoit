@@ -390,17 +390,28 @@ async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.si
   }
 
   // Refresh current event + rides
-  frag.addEventListener('click', async (e)=>{
+  let _evRefreshing = false;
+  card.addEventListener('click', async (e)=>{
     const b = e.target.closest('#btn-ev-refresh');
     if (!b) return;
-    const id = (selEv && selEv.value) ? Number(selEv.value) : (Store.singleEvent()?.id||0);
+    if (_evRefreshing) return;
+    _evRefreshing = true;
+    b.setAttribute('disabled','disabled');
     try{
-      const ne = await API.getEvent(id || undefined);
-      if (ne && ne.id){ Store.event = ne; Store.eventSource = 'api'; }
-    }catch{}
-    renderEventCard(Store.singleEvent());
-    await render();
-    refreshImpact().catch(()=>{});
+      const id = (selEv && selEv.value) ? Number(selEv.value) : (Store.singleEvent()?.id||0);
+      try{
+        const ne = await API.getEvent(id || undefined);
+        if (ne && ne.id){ Store.event = ne; Store.eventSource = 'api'; }
+      }catch{}
+      renderEventCard(Store.singleEvent());
+      await render();
+      refreshImpact().catch(()=>{});
+    }finally{
+      _evRefreshing = false;
+      // Button got recreated by renderEventCard, so only re-enable if still in DOM
+      const nb = document.getElementById('btn-ev-refresh');
+      if (nb) nb.removeAttribute('disabled');
+    }
   });
 
   // Delegated interactions: toggle requests list and cancel/accept/refuse (with PIN if needed)
