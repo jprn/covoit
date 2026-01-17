@@ -154,7 +154,7 @@ html,body{
   .topbar{height:112px}
   .brand-text{order:1;flex:1;min-width:0}
   .burger{order:2}
-  .impactbar{order:3}
+  .impactbar{order:3; display:flex}
 
   .burger{display:inline-flex}
   .tabbar{display:none}
@@ -176,10 +176,10 @@ html,body{
   body.nav-open{overflow:hidden}
   .topbar{z-index:9}
 
-  .impactbar{width:100%;margin-left:0;justify-content:center;gap:10px;flex-wrap:nowrap}
-  .impact{min-width:0;flex:1 1 0;padding:10px 10px}
-  .impact-value{font-size:clamp(18px,6vw,28px)}
-  .impact-label{font-size:12px;margin-top:4px}
+  .impactbar{width:100%;margin-left:0;justify-content:center;gap:8px;flex-wrap:nowrap}
+  .impact{min-width:auto;flex:0 1 auto;padding:6px 8px}
+  .impact-value{font-size:clamp(16px,5vw,22px)}
+  .impact-label{font-size:11px;margin-top:2px}
   body.nav-open .impactbar{display:none}
 
   .form-row{grid-template-columns:1fr;gap:0}
