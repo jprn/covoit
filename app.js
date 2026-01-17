@@ -9,7 +9,7 @@ const LS_APP_VERSION = 'sportride_app_version_v1';
 const QS = new URLSearchParams(location.search);
 
 // Bump this on each deploy to force cache purge
-const APP_VERSION = '2026-01-17-1';
+const APP_VERSION = '2026-01-17-2';
 
 // Force hard reload: unregister SW, clear Cache Storage, then reload with cache-busting param
 async function hardReload(){
