@@ -207,46 +207,114 @@
   </template>
 
   <template id="tpl-help">
-    <section>
-      <h2>Aide</h2>
-      <div class="card">
-        <h3>Présentation</h3>
-        <p>Cette application vous permet de proposer ou de rechercher des trajets de covoiturage pour un évènement.</p>
-      </div>
-      <div class="card">
-        <h3>Proposer un trajet</h3>
-        <ol>
-          <li>Allez dans l’onglet « Proposer ».</li>
-          <li>Renseignez les informations du trajet et vos coordonnées.</li>
-          <li>Un code PIN conducteur vous sera demandé plus tard pour modifier/supprimer le trajet.</li>
-        </ol>
-      </div>
-      <div class="card">
-        <h3>Rechercher et rejoindre un trajet</h3>
-        <ol>
-          <li>Allez dans l’onglet « Rechercher ».</li>
-          <li>Filtrez selon vos critères, puis ouvrez un trajet.</li>
-          <li>Cliquez « Demander à rejoindre » et indiquez vos coordonnées.</li>
-        </ol>
-      </div>
-      <div class="card">
-        <h3>PIN conducteur</h3>
-        <p>Le PIN est requis pour les actions sensibles (accepter/refuser des demandes, modifier/supprimer un trajet, afficher un numéro de téléphone). Il n’est pas mémorisé sur l’appareil.</p>
-      </div>
-      <div class="card">
-        <h3>Afficher le téléphone d’un participant</h3>
-        <p>Sur les participants acceptés, cliquez sur l’icône 📞. Le numéro est masqué par défaut et s’affiche après vérification du PIN du trajet.</p>
-      </div>
-      <div class="card">
-        <h3>Rafraîchir les données</h3>
-        <p>Dans la page « Évènement », le bouton « Rafraîchir » met à jour les trajets et nettoie le cache/localStorage si nécessaire.</p>
-      </div>
-    </section>
-  </template>
+  <section>
+    <h2>Aide</h2>
 
-  
+    <div class="card">
+      <h3>Sommaire</h3>
+      <ul>
+        <li><a href="#help-presentation">Présentation</a></li>
+        <li><a href="#help-pratiques">Prérequis et bonnes pratiques</a></li>
+        <li><a href="#help-proposer">Proposer un trajet</a></li>
+        <li><a href="#help-rechercher">Rechercher et rejoindre un trajet</a></li>
+        <li><a href="#help-gerer">Gérer les demandes (conducteur)</a></li>
+        <li><a href="#help-telephone">Afficher le téléphone d’un participant</a></li>
+        <li><a href="#help-pin">PIN conducteur</a></li>
+        <li><a href="#help-rafraichir">Rafraîchir les données</a></li>
+        <li><a href="#help-faq">FAQ & Dépannage</a></li>
+        <li><a href="#help-confidentialite">Confidentialité</a></li>
+        <li><a href="#help-support">Besoin d’aide ?</a></li>
+      </ul>
+    </div>
 
-  <script src="data.js?v=20260115-1"></script>
-  <script type="module" src="app.js?v=20260115-1"></script>
+    <div class="card">
+      <h3 id="help-presentation">Présentation</h3>
+      <p>Cette application vous permet de <strong>proposer</strong> ou de <strong>rechercher</strong> des trajets de covoiturage pour un évènement (allers et retours).</p>
+      <ul>
+        <li><strong>Proposer</strong> un trajet si vous avez des places disponibles.</li>
+        <li><strong>Rechercher</strong> un trajet pour rejoindre un conducteur.</li>
+        <li><strong>Gérer</strong> les demandes: accepter/refuser et contacter les participants.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3 id="help-pratiques">Prérequis et bonnes pratiques</h3>
+      <ul>
+        <li>Renseignez un <strong>numéro de téléphone valide</strong> pour faciliter le contact.</li>
+        <li>Gardez vos informations à jour (heure, lieu, places restantes).</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3 id="help-proposer">Proposer un trajet</h3>
+      <ol>
+        <li>Ouvrez l’onglet « Proposer ».</li>
+        <li>Renseignez l’évènement, le type (Aller/Retour), la date/heure et le point de départ.</li>
+        <li>Indiquez vos coordonnées (pseudo et téléphone), puis validez.</li>
+        <li>Un <strong>PIN conducteur</strong> est associé au trajet: gardez-le, il sera demandé pour modifier/supprimer le trajet et gérer les demandes.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h3 id="help-rechercher">Rechercher et rejoindre un trajet</h3>
+      <ol>
+        <li>Onglet « Rechercher », appliquez vos filtres (type, ville, heure, places, etc.).</li>
+        <li>Ouvrez un trajet pour voir les détails et cliquez « Demander à rejoindre ».</li>
+        <li>Indiquez vos coordonnées, le nombre de places et un message si besoin.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h3 id="help-gerer">Gérer les demandes (conducteur)</h3>
+      <ul>
+        <li>Depuis « Évènement » ou la page du trajet, consultez les demandes.</li>
+        <li><strong>Accepter</strong> ou <strong>Refuser</strong> demande le <strong>PIN conducteur</strong>.</li>
+        <li>Les <strong>participants acceptés</strong> sont listés séparément.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3 id="help-telephone">Afficher le téléphone d’un participant</h3>
+      <p>Sur un participant accepté, cliquez sur l’icône 📞. Le numéro est <strong>masqué par défaut</strong> et s’affiche après saisie du <strong>PIN du trajet</strong>. Le PIN est demandé à chaque affichage pour des raisons de sécurité.</p>
+    </div>
+
+    <div class="card">
+      <h3 id="help-pin">PIN conducteur</h3>
+      <ul>
+        <li>Requis pour: accepter/refuser, modifier/supprimer un trajet, afficher un numéro.</li>
+        <li><strong>Non mémorisé</strong> sur l’appareil. En cas d’oubli, recréez un trajet.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3 id="help-rafraichir">Rafraîchir les données</h3>
+      <p>Dans « Évènement », utilisez « Rafraîchir » pour mettre à jour les listes. Le cache/localStorage peut être vidé afin de garantir des données fraîches.</p>
+    </div>
+
+    <div class="card">
+      <h3 id="help-faq">FAQ & Dépannage</h3>
+      <ul>
+        <li><strong>Rien ne s’affiche sur Aide</strong> — Forcez le rechargement (Cmd+Shift+R) et vérifiez l’URL contient #help.</li>
+        <li><strong>PIN refusé</strong> — Vérifiez le PIN du bon trajet (exactitude des chiffres).</li>
+        <li><strong>Numéro masqué</strong> — Cliquez à nouveau 📞 et ressaisissez le PIN (pas de mémorisation).</li>
+        <li><strong>Trajet complet</strong> — Les nouvelles demandes ne sont plus possibles; vous voyez la liste des participants.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3 id="help-confidentialite">Confidentialité</h3>
+      <p>Les numéros de téléphone ne sont visibles que sur action explicite et contrôle PIN. Aucune mémorisation du PIN n’est réalisée côté navigateur.</p>
+    </div>
+
+    <div class="card">
+      <h3 id="help-support">Besoin d’aide ?</h3>
+      <p>Si vous rencontrez un problème, décrivez la page et l’action réalisée (avec l’heure) pour faciliter l’assistance.</p>
+      <p><a href="mailto:jerome.perrin_1@icloud.com?subject=Aide%20Covoiturage%20Ofrance">Contacter le support (email)</a></p>
+    </div>
+  </section>
+</template>
+
+  <script src="data.js?v=20260117-1"></script>
+  <script type="module" src="app.js?v=20260117-3"></script>
 </body>
 </html>

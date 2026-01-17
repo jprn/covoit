@@ -262,7 +262,7 @@ function buildReqListHTML(rideId){ const items = cachedRequestsByRide(rideId); c
     const ownerBtns = (x.status==='PENDING')? `<button type=\"button\" class=\"btn small primary btn-accept-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Accepter</button> <button type=\"button\" class=\"btn small danger btn-refuse-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Refuser</button>`: '';
     const itemCls = x.status==='ACCEPTED' ? 'card req accepted' : (x.status==='PENDING' ? 'card req pending' : 'card req');
     const phoneBlock = (x.status==='ACCEPTED' && x.passenger_phone)
-      ? `<div><strong>Tél:</strong> <span class=\"phone-val\" data-phone=\"${x.passenger_phone}\">Masqué</span> <button type=\"button\" class=\"btn small btn-show-phone\" data-ride=\"${rideId}\" data-phone=\"${x.passenger_phone}\">📞</button></div>`
+      ? `<div><strong>Tél:</strong> <span class=\"phone-val\" data-phone=\"${x.passenger_phone}\">Masqué</span> <button type=\"button\" class=\"btn small btn-show-phone\" aria-label=\"Voir le téléphone du participant\" data-ride=\"${rideId}\" data-phone=\"${x.passenger_phone}\">📞</button></div>`
       : '';
     return `<li class=\"${itemCls}\"><div><strong>${x.passenger_name||x.passenger||''}</strong> • ${x.seats} place(s) <span class=\"${badge}\" style=\"margin-left:8px\">${statusLabelFR(x.status)}</span></div><div class=\"muted\">${x.message||''}</div>${phoneBlock}<div class=\"cta-row\">${ownerBtns} ${cancelBtn}</div></li>`; };
   let html = '';
