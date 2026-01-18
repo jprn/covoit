@@ -152,9 +152,9 @@ html,body{
   .brand{position:relative;flex-wrap:nowrap;align-items:center}
   .brand-logo{order:0; width:64px; height:64px}
   .topbar{height:112px}
-  .brand-text{order:1;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:96px}
-  .burger{order:2}
-  .impactbar{order:3; display:flex; position:absolute; top:14px; right:16px; flex-wrap:nowrap; white-space:nowrap}
+  .brand-text{order:1;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .impactbar{order:2;display:flex;flex:0 0 auto;margin-left:0;justify-content:flex-end;gap:8px;flex-wrap:nowrap;white-space:nowrap}
+  .burger{order:3;margin-left:0}
 
   .burger{display:inline-flex}
   .tabbar{display:none}
@@ -176,7 +176,7 @@ html,body{
   body.nav-open{overflow:hidden}
   .topbar{z-index:9}
 
-  .impactbar{width:auto;margin-left:0;justify-content:flex-end;gap:8px;flex-wrap:nowrap}
+  .impactbar{width:auto}
   .impact{min-width:auto;flex:0 1 auto;padding:6px 8px}
   .impact-value{font-size:clamp(16px,5vw,22px)}
   .impact-label{font-size:11px;margin-top:2px}
@@ -188,8 +188,7 @@ html,body{
 }
 
 @media (max-width: 380px){
-  .brand-text{padding-right:96px}
-  .impactbar{gap:6px; top:12px; right:12px; max-width:45%; white-space:nowrap}
+  .impactbar{gap:6px; max-width:45%; white-space:nowrap}
   .impact{padding:4px 6px}
   .impact-value{font-size:18px}
   .impact-label{display:none}
