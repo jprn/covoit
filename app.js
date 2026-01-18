@@ -285,22 +285,30 @@ const routes = {
 };
 
 let _btBound=false;
-function mountLayout(){ const root=$('#app'); root.innerHTML=''; root.append($('#tpl-layout').content.cloneNode(true));
-  const btn=document.getElementById('back-to-top');
-  const updateBackToTop = ()=>{
-    const b=document.getElementById('back-to-top'); if(!b) return;
-    const y = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-    const show = y > 240;
-    b.classList.toggle('hidden', !show);
-  };
-  if (btn){
-    btn.addEventListener('click', (e)=>{ e.preventDefault(); try{ window.scrollTo({ top:0, behavior:'smooth' }); }catch{ window.scrollTo(0,0); } });
-  }
-  if(!_btBound){
-    _btBound=true;
-    window.addEventListener('scroll', updateBackToTop, { passive:true });
-  }
-  // Ensure correct visibility on first render
+function updateBackToTop(){
+  const b=document.getElementById('back-to-top');
+  if(!b) return;
+  const y = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+  const show = y > 240;
+  b.classList.toggle('hidden', !show);
+}
+function initBackToTop(){
+  if (_btBound) return;
+  _btBound = true;
+  window.addEventListener('scroll', updateBackToTop, { passive:true });
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('#back-to-top');
+    if (!btn) return;
+    e.preventDefault();
+    try{ window.scrollTo({ top:0, behavior:'smooth' }); }
+    catch{ window.scrollTo(0,0); }
+  });
+}
+function mountLayout(){
+  const root=$('#app');
+  root.innerHTML='';
+  root.append($('#tpl-layout').content.cloneNode(true));
+  initBackToTop();
   updateBackToTop();
 }
 async function router(){
@@ -309,6 +317,7 @@ async function router(){
   // ensure mobile nav is closed when navigating
   document.body.classList.remove('nav-open'); const nb=document.getElementById('nav-toggle'); if(nb) nb.setAttribute('aria-expanded','false');
   const h=location.hash||'#home'; const [base, query]=h.split('?'); const params=new URLSearchParams(query||''); const view=routes[base]||renderHome; await view(params); setActive(base);
+  updateBackToTop();
 }
 function setActive(base){ $$('.tab').forEach(t=> t.classList.toggle('active', t.getAttribute('href')===base)); }
 window.addEventListener('hashchange', router);
