@@ -333,7 +333,22 @@ function mountLayout(){
   // Admin unlock: double-click on title
   const title = document.querySelector('.topbar h1');
   if (title){
+    // Desktop
     title.addEventListener('dblclick', (e)=>{ e.preventDefault(); promptAdminUnlock(); });
+    // Mobile-friendly: 5 quick taps
+    let taps = 0;
+    let lastTap = 0;
+    title.addEventListener('pointerup', (e)=>{
+      const now = Date.now();
+      if (now - lastTap > 900) taps = 0;
+      lastTap = now;
+      taps += 1;
+      if (taps >= 5){
+        taps = 0;
+        e.preventDefault();
+        promptAdminUnlock();
+      }
+    });
   }
 }
 async function router(){
