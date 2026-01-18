@@ -149,12 +149,18 @@ html,body{
 }
 
 @media (max-width: 760px){
-  .brand{position:relative;flex-wrap:nowrap;align-items:center}
-  .brand-logo{order:0; width:64px; height:64px}
+  .brand{
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr) auto auto;
+    column-gap:10px;
+    align-items:center;
+  }
+  .brand-logo{width:64px;height:64px}
   .topbar{height:112px}
-  .brand-text{order:1;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .impactbar{order:2;display:flex;flex:0 0 auto;margin-left:0;justify-content:flex-end;gap:8px;flex-wrap:nowrap;white-space:nowrap}
-  .burger{order:3;margin-left:0}
+  .brand-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .impactbar{margin-left:0;justify-content:flex-end;gap:8px;flex-wrap:nowrap;white-space:nowrap;max-width:140px}
+  .impact{min-width:0;max-width:140px}
+  .burger{margin-left:0}
 
   .burger{display:inline-flex}
   .tabbar{display:none}
@@ -188,7 +194,7 @@ html,body{
 }
 
 @media (max-width: 380px){
-  .impactbar{gap:6px; max-width:45%; white-space:nowrap}
+  .impactbar{gap:6px; max-width:110px; white-space:nowrap}
   .impact{padding:4px 6px}
   .impact-value{font-size:18px}
   .impact-label{display:none}
