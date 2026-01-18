@@ -196,7 +196,7 @@ html,body{
 }
 
 @media (max-width: 380px){
-  .topbar h1{font-size:20px}
+  .topbar h1{font-size:16px}
   .impactbar{gap:6px; max-width:110px; white-space:nowrap}
   .impact{padding:4px 6px}
   .impact-value{font-size:18px}
