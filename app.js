@@ -216,6 +216,15 @@ function showAdminPinDialog({ pin, phone } = {}){
   });
 }
 
+function reloadStylesheet(){
+  const el = document.getElementById('app-styles');
+  if (!el) return;
+  const baseHref = el.getAttribute('href') || 'styles.css';
+  const url = new URL(baseHref, window.location.href);
+  url.searchParams.set('v', String(Date.now()));
+  el.setAttribute('href', url.pathname + '?' + url.searchParams.toString());
+}
+
 async function loadRides(){
   try{
     const rides = await API.listRides(Store.singleEvent()?.id || 1);
@@ -572,10 +581,11 @@ async function renderEvent(){ await loadEvent().catch(()=>{}); const ev=Store.si
     _evRefreshing = true;
     b.setAttribute('disabled','disabled');
     try{
+      reloadStylesheet();
       const id = (selEv && selEv.value) ? Number(selEv.value) : (Store.singleEvent()?.id||0);
       try{
-        const ne = await API.getEvent(id || undefined);
-        if (ne && ne.id){ Store.event = ne; Store.eventSource = 'api'; }
+        const fresh = await API.getEvent(id);
+        if (fresh) Store.setSingleEvent(fresh);
       }catch{}
       renderEventCard(Store.singleEvent());
       await render();
