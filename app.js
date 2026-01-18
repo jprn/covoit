@@ -6,6 +6,7 @@ const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 const LS_OWNER_VERIF = 'sportride_owner_verif_v1';
 const LS_DEVICE_ID = 'sportride_device_id_v1';
 const LS_APP_VERSION = 'sportride_app_version_v1';
+const SS_ADMIN_UNLOCK = 'sportride_admin_unlocked_v1';
 const QS = new URLSearchParams(location.search);
 
 // Bump this on each deploy to force cache purge
@@ -134,7 +135,25 @@ const API = {
   async ownerVerify(payload){
     return apiFetch('/owner_verify.php', { method:'POST', body: payload });
   },
+  async adminResetPin(payload){
+    return apiFetch('/rides_admin_reset_pin.php', { method:'POST', body: payload });
+  },
 };
+
+function isAdminUnlocked(){
+  try{ return sessionStorage.getItem(SS_ADMIN_UNLOCK) === '1'; }catch{ return false; }
+}
+function promptAdminUnlock(){
+  const code = prompt('Code admin');
+  if (!code) return false;
+  if (String(code).trim() === '170373'){
+    try{ sessionStorage.setItem(SS_ADMIN_UNLOCK, '1'); }catch{}
+    toast('Mode admin activé');
+    return true;
+  }
+  toast('Code admin incorrect');
+  return false;
+}
 
 async function loadRides(){
   try{
@@ -310,6 +329,12 @@ function mountLayout(){
   root.append($('#tpl-layout').content.cloneNode(true));
   initBackToTop();
   updateBackToTop();
+
+  // Admin unlock: double-click on title
+  const title = document.querySelector('.topbar h1');
+  if (title){
+    title.addEventListener('dblclick', (e)=>{ e.preventDefault(); promptAdminUnlock(); });
+  }
 }
 async function router(){
   mountLayout();
@@ -717,11 +742,14 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   if(!r){ box.textContent='Trajet introuvable'; $('#page').append(frag); return; }
   await loadRequestsByRide(r.id);
   const leftNow = seatsLeftFrom(r, cachedRequestsByRide(r.id));
+  const adminControls = isAdminUnlocked()
+    ? `<div class="cta-row"><button id="btn-admin-reset-pin" class="btn danger" type="button">Régénérer le PIN</button></div>`
+    : '';
   box.innerHTML = `<h2>${r.origin_text} → ${Store.singleEvent().name} (${Store.singleEvent().city})</h2>
   <div><strong>Heure de départ : </strong>${fmtDateTime(r.depart_at)}</div>
   <div><strong>Places restantes : </strong>${leftNow}/${r.seats_total} ${leftNow<=0? '<span class="badge full">Complet</span>':''}</div>
   <div><strong>Conducteur : </strong>${r.driver_name||r.driver||'Invité'} Tel : ${r.driver_phone}</div>
-  <div class="cta-row"><button id="btn-edit-ride" class="btn">Modifier</button><button id="btn-delete-ride" class="btn danger">Supprimer</button></div>`;
+  <div class="cta-row"><button id="btn-edit-ride" class="btn">Modifier</button><button id="btn-delete-ride" class="btn danger">Supprimer</button></div>${adminControls}`;
   const modal=$('#req-modal',frag), btn=$('#btn-request',frag), form=$('#req-form',frag);
   const editModal=$('#edit-modal',frag), editForm=$('#edit-form',frag);
   // Requests list on ride detail
@@ -802,6 +830,27 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   const editCancel = $('#edit-cancel', frag); if (editCancel) editCancel.addEventListener('click', closeEdit);
   // Delegated clicks for edit/delete on the #ride-details box (survive innerHTML refresh)
   box.addEventListener('click', async (e)=>{
+    const ar = e.target.closest('#btn-admin-reset-pin');
+    if (ar){
+      e.preventDefault();
+      e.stopPropagation();
+      // extra guard: require admin unlocked or unlock now
+      if (!isAdminUnlocked() && !promptAdminUnlock()) return;
+      if (!confirm('Régénérer le PIN conducteur ? L\'ancien PIN sera invalidé.')) return;
+      try{
+        const data = await API.adminResetPin({ ride_id: r.id, admin_code: '170373' });
+        const pin = data?.owner_pin ? String(data.owner_pin) : '';
+        const phone = data?.driver_phone ? String(data.driver_phone) : '';
+        if (pin){
+          alert(`Nouveau PIN conducteur: ${pin}${phone ? `\nTéléphone conducteur: ${phone}` : ''}`);
+        } else {
+          toast('PIN régénéré');
+        }
+      }catch(err){
+        toast(err.message||'Erreur');
+      }
+      return;
+    }
     const be = e.target.closest('#btn-edit-ride');
     if (be){ e.preventDefault(); e.stopPropagation(); openEdit(); return; }
     const bd = e.target.closest('#btn-delete-ride');
