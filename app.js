@@ -143,16 +143,77 @@ const API = {
 function isAdminUnlocked(){
   try{ return sessionStorage.getItem(SS_ADMIN_UNLOCK) === '1'; }catch{ return false; }
 }
+function setAdminUnlocked(v){
+  try{
+    if (v) sessionStorage.setItem(SS_ADMIN_UNLOCK, '1');
+    else sessionStorage.removeItem(SS_ADMIN_UNLOCK);
+  }catch{}
+}
 function promptAdminUnlock(){
   const code = prompt('Code admin');
   if (!code) return false;
   if (String(code).trim() === '170373'){
-    try{ sessionStorage.setItem(SS_ADMIN_UNLOCK, '1'); }catch{}
+    setAdminUnlocked(true);
     toast('Mode admin activé');
     return true;
   }
   toast('Code admin incorrect');
   return false;
+}
+
+function showAdminPinDialog({ pin, phone } = {}){
+  return new Promise((resolve)=>{
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    const safePin = String(pin || '');
+    const safePhone = String(phone || '');
+    modal.innerHTML = `<div class="modal-content">
+  <h3>Nouveau PIN conducteur</h3>
+  <div class="card" style="margin:10px 0">
+    <div style="font-size:34px;font-weight:900;letter-spacing:1px">${safePin}</div>
+    ${safePhone ? `<div class="muted" style="margin-top:6px">Téléphone conducteur: <strong>${safePhone}</strong></div>` : ''}
+  </div>
+  <div class="cta-row">
+    <button type="button" class="btn" id="btn-pin-copy">Copier</button>
+    <button type="button" class="btn primary" id="btn-pin-ok">OK</button>
+  </div>
+</div>`;
+    document.body.appendChild(modal);
+
+    const close = ()=>{ try{ modal.remove(); }catch{} resolve(); };
+    modal.addEventListener('click', (e)=>{ if (e.target === modal) close(); });
+
+    const btnCopy = modal.querySelector('#btn-pin-copy');
+    const btnOk = modal.querySelector('#btn-pin-ok');
+    if (btnCopy){
+      btnCopy.addEventListener('click', async ()=>{
+        try{
+          if (navigator.clipboard && navigator.clipboard.writeText){
+            await navigator.clipboard.writeText(safePin);
+            toast('PIN copié');
+            return;
+          }
+        }catch{}
+        try{
+          const ta = document.createElement('textarea');
+          ta.value = safePin;
+          ta.setAttribute('readonly','readonly');
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+          toast('PIN copié');
+        }catch{
+          toast('Copie impossible');
+        }
+      });
+    }
+    if (btnOk){
+      btnOk.addEventListener('click', close);
+    }
+  });
 }
 
 async function loadRides(){
@@ -857,7 +918,8 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
         const pin = data?.owner_pin ? String(data.owner_pin) : '';
         const phone = data?.driver_phone ? String(data.driver_phone) : '';
         if (pin){
-          alert(`Nouveau PIN conducteur: ${pin}${phone ? `\nTéléphone conducteur: ${phone}` : ''}`);
+          await showAdminPinDialog({ pin, phone });
+          setAdminUnlocked(false);
         } else {
           toast('PIN régénéré');
         }
