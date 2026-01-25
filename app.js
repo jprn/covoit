@@ -239,6 +239,20 @@ async function loadRides(){
   }
 }
 
+async function loadRidesForEvent(eventId){
+  try{
+    const rides = await API.listRides(eventId);
+    Store.cache.rides = rides;
+    Store.cache.ridesSource = 'api';
+    return rides;
+  }catch{
+    const fallback = window.DemoData?.rides || [];
+    Store.cache.rides = fallback;
+    Store.cache.ridesSource = 'demo';
+    return fallback;
+  }
+}
+
 async function loadEvent(){
   try {
     const ev = await API.getEvent();
@@ -315,7 +329,9 @@ async function refreshImpact(){
   }
   _impactLoading = true;
   try{
-    const rides = await loadRides();
+    // Impact: agrège sur l'ensemble des évènements, donc on charge tous les trajets.
+    // Le backend peut renvoyer tous les trajets si event_id est omis.
+    const rides = await loadRidesForEvent(undefined);
     await Promise.all(rides.map(r=> loadRequestsByRide(r.id).catch(()=>[])));
     const c = computeImpactFromCache();
     elV.textContent = String(c.vehiclesSaved);
