@@ -182,8 +182,43 @@ function ensureAdminBorder(on){
     if (el){ try{ el.remove(); }catch{} }
   }
 }
+function ensureAdminExitButton(on){
+  const id = 'admin-exit-btn';
+  let el = document.getElementById(id);
+  if (on){
+    if (!el){
+      el = document.createElement('button');
+      el.id = id;
+      el.type = 'button';
+      el.textContent = 'Quitter le mode admin';
+      el.style.position = 'fixed';
+      el.style.right = '16px';
+      el.style.bottom = '16px';
+      el.style.zIndex = '2147483647';
+      el.style.padding = '10px 14px';
+      el.style.borderRadius = '999px';
+      el.style.border = '0';
+      el.style.color = '#fff';
+      el.style.background = '#1f2937';
+      el.style.boxShadow = '0 6px 16px rgba(0,0,0,0.25)';
+      el.style.cursor = 'pointer';
+      el.style.fontWeight = '600';
+      el.style.fontSize = '14px';
+      el.addEventListener('click', async (e)=>{
+        e.preventDefault();
+        try{ setAdminUnlocked(false); toast('Mode admin désactivé'); }catch{}
+        try{ await router(); }catch{}
+      });
+      document.body.appendChild(el);
+    }
+  } else {
+    if (el){ try{ el.remove(); }catch{} }
+  }
+}
 function updateAdminUI(){
-  ensureAdminBorder(isAdminUnlocked());
+  const on = isAdminUnlocked();
+  ensureAdminBorder(on);
+  ensureAdminExitButton(on);
 }
 
 function showAdminPinDialog({ pin, phone } = {}){
@@ -871,7 +906,7 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   await loadRequestsByRide(r.id);
   const leftNow = seatsLeftFrom(r, cachedRequestsByRide(r.id));
   const adminControls = isAdminUnlocked()
-    ? `<div class="cta-row"><button id="btn-admin-reset-pin" class="btn danger" type="button">Régénérer le PIN</button><button id="btn-admin-exit" class="btn" type="button">Quitter le mode admin</button></div>`
+    ? `<div class="cta-row"><button id="btn-admin-reset-pin" class="btn danger" type="button">Régénérer le PIN</button></div>`
     : '';
   box.innerHTML = `<h2>${r.origin_text} → ${Store.singleEvent().name} (${Store.singleEvent().city})</h2>
   <div><strong>Heure de départ : </strong>${fmtDateTime(r.depart_at)}</div>
@@ -978,15 +1013,6 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
       }catch(err){
         toast(err.message||'Erreur');
       }
-      return;
-    }
-    const adminExit = e.target.closest('#btn-admin-exit');
-    if (adminExit){
-      e.preventDefault();
-      e.stopPropagation();
-      setAdminUnlocked(false);
-      toast('Mode admin désactivé');
-      try { await router(); } catch {}
       return;
     }
     const be = e.target.closest('#btn-edit-ride');
