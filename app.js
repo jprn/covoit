@@ -148,6 +148,7 @@ function setAdminUnlocked(v){
     if (v) sessionStorage.setItem(SS_ADMIN_UNLOCK, '1');
     else sessionStorage.removeItem(SS_ADMIN_UNLOCK);
   }catch{}
+  try{ updateAdminUI(); }catch{}
 }
 function promptAdminUnlock(){
   const code = prompt('Code admin');
@@ -159,6 +160,30 @@ function promptAdminUnlock(){
   }
   toast('Code admin incorrect');
   return false;
+}
+// Visual indicator for admin mode: add/remove a fixed overlay around the app
+function ensureAdminBorder(on){
+  const id = 'admin-border';
+  let el = document.getElementById(id);
+  if (on){
+    if (!el){
+      el = document.createElement('div');
+      el.id = id;
+      el.style.position = 'fixed';
+      el.style.inset = '0';
+      el.style.pointerEvents = 'none';
+      el.style.border = '4px solid #e11d48';
+      el.style.borderRadius = '12px';
+      el.style.boxSizing = 'border-box';
+      el.style.zIndex = '2147483647';
+      document.body.appendChild(el);
+    }
+  } else {
+    if (el){ try{ el.remove(); }catch{} }
+  }
+}
+function updateAdminUI(){
+  ensureAdminBorder(isAdminUnlocked());
 }
 
 function showAdminPinDialog({ pin, phone } = {}){
@@ -439,6 +464,7 @@ function mountLayout(){
 }
 async function router(){
   mountLayout();
+  try{ updateAdminUI(); }catch{}
   refreshImpact().catch(()=>{});
   // ensure mobile nav is closed when navigating
   document.body.classList.remove('nav-open'); const nb=document.getElementById('nav-toggle'); if(nb) nb.setAttribute('aria-expanded','false');
@@ -845,7 +871,7 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
   await loadRequestsByRide(r.id);
   const leftNow = seatsLeftFrom(r, cachedRequestsByRide(r.id));
   const adminControls = isAdminUnlocked()
-    ? `<div class="cta-row"><button id="btn-admin-reset-pin" class="btn danger" type="button">Régénérer le PIN</button></div>`
+    ? `<div class="cta-row"><button id="btn-admin-reset-pin" class="btn danger" type="button">Régénérer le PIN</button><button id="btn-admin-exit" class="btn" type="button">Quitter le mode admin</button></div>`
     : '';
   box.innerHTML = `<h2>${r.origin_text} → ${Store.singleEvent().name} (${Store.singleEvent().city})</h2>
   <div><strong>Heure de départ : </strong>${fmtDateTime(r.depart_at)}</div>
@@ -952,6 +978,15 @@ async function renderRide(params){ const id=params.get('id'); const frag=$('#tpl
       }catch(err){
         toast(err.message||'Erreur');
       }
+      return;
+    }
+    const adminExit = e.target.closest('#btn-admin-exit');
+    if (adminExit){
+      e.preventDefault();
+      e.stopPropagation();
+      setAdminUnlocked(false);
+      toast('Mode admin désactivé');
+      try { await router(); } catch {}
       return;
     }
     const be = e.target.closest('#btn-edit-ride');
