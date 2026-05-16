@@ -423,7 +423,7 @@ function buildReqListHTML(rideId){ const items = cachedRequestsByRide(rideId); c
   const accepted = items.filter(x=> x.status==='ACCEPTED');
   const pending = items.filter(x=> x.status==='PENDING');
   const renderItem = (x)=>{ const mine = x.requester_device_id && x.requester_device_id===me; const badge = x.status==='PENDING'?'badge pending': x.status==='ACCEPTED'?'badge accepted':'badge refused';
-    const cancelBtn = (mine && x.status==='PENDING')? `<button type=\"button\" class=\"btn small btn-cancel-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Annuler</button>`: '';
+    const cancelBtn = '';
     const ownerBtns = (x.status==='PENDING')? `<button type=\"button\" class=\"btn small primary btn-accept-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Accepter</button> <button type=\"button\" class=\"btn small danger btn-refuse-req\" data-req=\"${x.id}\" data-ride=\"${rideId}\">Refuser</button>`: '';
     const itemCls = x.status==='ACCEPTED' ? 'card req accepted' : (x.status==='PENDING' ? 'card req pending' : 'card req');
     const phoneBlock = (x.status==='ACCEPTED' && x.passenger_phone)
